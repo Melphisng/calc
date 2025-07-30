@@ -70,11 +70,23 @@
         .options {
             margin: 20px 0;
         }
+        .option {
+            margin: 15px 0;
+        }
+        .option label {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        select {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
         .option-button {
-            display: block;
+            display: inline-block;
             padding: 12px 24px;
             font-size: 18px;
-            margin: 10px auto;
             cursor: pointer;
             background-color: #4CAF50;
             color: white;
@@ -82,7 +94,7 @@
             border-radius: 5px;
             touch-action: manipulation;
             min-height: 48px;
-            width: 240px;
+            width: 120px;
         }
         .option-button:hover {
             background-color: #45a049;
@@ -124,9 +136,17 @@
             h1 {
                 font-size: 24px;
             }
+            .option label {
+                font-size: 16px;
+            }
+            select {
+                font-size: 14px;
+                padding: 6px;
+            }
             .option-button {
                 font-size: 16px;
                 padding: 10px 20px;
+                width: 100px;
             }
             input[type="text"] {
                 font-size: 16px;
@@ -143,8 +163,32 @@
     <div class="container">
         <h1>珠心算练习</h1>
         <div class="options">
-            <button class="option-button" onclick="window.location.href='一位三笔1.0.html'" ontouchstart="window.location.href='一位三笔1.0.html'">一位普通运算</button>
-            <button class="option-button" onclick="window.location.href='直加直减1.0.html'" ontouchstart="window.location.href='直加直减1.0.html'">一位直加直减</button>
+            <div class="option">
+                <label for="numQuestionsSingle">一位普通运算 - 题目数量：</label>
+                <select id="numQuestionsSingle">
+                    <option value="10">10</option>
+                    <option value="40" selected>40</option>
+                    <option value="80">80</option>
+                    <option value="120">120</option>
+                    <option value="160">160</option>
+                    <option value="200">200</option>
+                    <option value="240">240</option>
+                </select>
+                <button class="option-button" onclick="startPractice('一位三笔1.0.html', 'numQuestionsSingle')" ontouchstart="startPractice('一位三笔1.0.html', 'numQuestionsSingle')">开始练习</button>
+            </div>
+            <div class="option">
+                <label for="numQuestionsDirect">一位直加直减 - 题目数量：</label>
+                <select id="numQuestionsDirect">
+                    <option value="10">10</option>
+                    <option value="40" selected>40</option>
+                    <option value="80">80</option>
+                    <option value="120">120</option>
+                    <option value="160">160</option>
+                    <option value="200">200</option>
+                    <option value="240">240</option>
+                </select>
+                <button class="option-button" onclick="startPractice('直加直减1.0.html', 'numQuestionsDirect')" ontouchstart="startPractice('直加直减1.0.html', 'numQuestionsDirect')">开始练习</button>
+            </div>
         </div>
         <div>
             <label for="userName">修改姓名：</label><br>
@@ -164,6 +208,11 @@
             }
             document.getElementById('userName').value = userName;
         };
+        function startPractice(url, selectId) {
+            const numQuestions = document.getElementById(selectId).value;
+            localStorage.setItem('numQuestions', numQuestions);
+            window.location.href = url;
+        }
         function changeName() {
             const userName = document.getElementById('userName').value.trim();
             if (!userName) {

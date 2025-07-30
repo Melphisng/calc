@@ -359,11 +359,11 @@
 
         function startPractice() {
             userName = localStorage.getItem('userName');
+            numQuestions = parseInt(localStorage.getItem('numQuestions')) || 40; // Fallback to 40 if not set
             if (!userName) {
                 window.location.href = 'index.html';
                 return;
             }
-            numQuestions = 40; // Default number of questions
             problems = [];
             for (let i = 0; i < numQuestions; i++) {
                 problems.push(generateProblem());
