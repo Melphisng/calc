@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>珠心算练习 - 主页</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #333;
+        }
+        .author {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .exercise-options {
+            margin: 20px 0;
+        }
+        .exercise-options a {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 1em;
+            text-decoration: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+        }
+        .exercise-options a:hover {
+            background-color: #45a049;
+        }
+        .name-modify {
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>珠心算练习</h1>
+    <div class="author">作者：颜毅翔</div>
+    <div class="exercise-options">
+        <a href="直加直减1.0.html">一位普通运算</a>
+        <a href="一位三笔1.0.html">一位直加直减</a>
+    </div>
+    <div class="name-modify">
+        <label for="name">修改姓名：</label>
+        <input type="text" id="name" placeholder="请输入新姓名">
+        <button onclick="modifyName()">确认修改</button>
+    </div>
+
+    <script>
+        function modifyName() {
+            const name = document.getElementById('name').value.trim();
+            if (name) {
+                localStorage.setItem('userName', name);
+                alert('姓名已修改！');
+            } else {
+                alert('请输入姓名！');
+            }
+        }
+    </script>
+</body>
+</html>

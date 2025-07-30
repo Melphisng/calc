@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>珠心算练习 - 登陆</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #333;
+        }
+        .author {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .input-container {
+            margin: 20px 0;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>珠心算练习</h1>
+    <div class="author">作者：颜毅翔</div>
+    <div class="input-container">
+        <label for="name">姓名：</label>
+        <input type="text" id="name" placeholder="请输入姓名" required>
+    </div>
+    <button onclick="enterSite()">进入</button>
+
+    <script>
+        function enterSite() {
+            const name = document.getElementById('name').value.trim();
+            if (name) {
+                localStorage.setItem('userName', name);
+                window.location.href = 'main.html';
+            } else {
+                alert('请输入姓名！');
+            }
+        }
+    </script>
+</body>
+</html>
