@@ -42,7 +42,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习 - 登录</title>
+    <title>珠心算练习 - 主页</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -67,6 +67,26 @@
             font-size: 32px;
             margin-bottom: 10px;
         }
+        .options {
+            margin: 20px 0;
+        }
+        .option-button {
+            display: block;
+            padding: 12px 24px;
+            font-size: 18px;
+            margin: 10px auto;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            touch-action: manipulation;
+            min-height: 48px;
+            width: 240px;
+        }
+        .option-button:hover {
+            background-color: #45a049;
+        }
         input[type="text"] {
             padding: 10px;
             font-size: 18px;
@@ -75,20 +95,20 @@
             -webkit-appearance: none;
             -moz-appearance: textfield;
         }
-        button {
+        button#changeNameButton {
             padding: 12px 24px;
             font-size: 18px;
             margin: 10px;
             cursor: pointer;
-            background-color: #4CAF50;
+            background-color: #1a73e8;
             color: white;
             border: none;
             border-radius: 5px;
             touch-action: manipulation;
             min-height: 48px;
         }
-        button:hover {
-            background-color: #45a049;
+        button#changeNameButton:hover {
+            background-color: #1557b0;
         }
         #error {
             font-size: 18px;
@@ -104,11 +124,15 @@
             h1 {
                 font-size: 24px;
             }
+            .option-button {
+                font-size: 16px;
+                padding: 10px 20px;
+            }
             input[type="text"] {
                 font-size: 16px;
                 width: 160px;
             }
-            button {
+            button#changeNameButton {
                 font-size: 16px;
                 padding: 10px 20px;
             }
@@ -118,27 +142,43 @@
 <body>
     <div class="container">
         <h1>珠心算练习</h1>
-        <label for="userName">请输入姓名：</label><br>
-        <input type="text" id="userName" placeholder="姓名">
-        <div id="error"></div>
-        <button onclick="enterSite()" ontouchstart="enterSite()">进入</button>
+        <div class="options">
+            <button class="option-button" onclick="window.location.href='一位三笔1.0.html'" ontouchstart="window.location.href='一位三笔1.0.html'">一位普通运算</button>
+            <button class="option-button" onclick="window.location.href='直加直减1.0.html'" ontouchstart="window.location.href='直加直减1.0.html'">一位直加直减</button>
+        </div>
+        <div>
+            <label for="userName">修改姓名：</label><br>
+            <input type="text" id="userName" placeholder="请输入新姓名">
+            <div id="error"></div>
+            <button id="changeNameButton" onclick="changeName()" ontouchstart="changeName()">确认修改</button>
+        </div>
         <div class="footer">
             <p>作者：颜毅翔</p>
         </div>
     </div>
     <script>
-        function enterSite() {
+        window.onload = () => {
+            const userName = localStorage.getItem('userName');
+            if (!userName) {
+                window.location.href = 'index.html';
+            }
+            document.getElementById('userName').value = userName;
+        };
+        function changeName() {
             const userName = document.getElementById('userName').value.trim();
             if (!userName) {
                 document.getElementById('error').innerText = '请输入姓名！';
                 return;
             }
             localStorage.setItem('userName', userName);
-            window.location.href = 'home.html';
+            document.getElementById('error').innerText = '姓名已更新！';
+            setTimeout(() => {
+                document.getElementById('error').innerText = '';
+            }, 2000);
         }
         document.getElementById('userName').addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
-                enterSite();
+                changeName();
             }
         });
     </script>

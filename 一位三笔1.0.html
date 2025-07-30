@@ -1,60 +1,125 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>珠心算练习（一位三笔）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             text-align: center;
-            margin: 50px;
+            max-width: 100%;
+            box-sizing: border-box;
         }
-        h1 {
-            font-size: 2em;
-            color: #333;
+        .problem {
+            font-size: 24px;
+            margin: 10px 0;
+            text-align: center;
         }
-        .question-number {
-            font-size: 1.5em;
-            margin: 20px 0;
+        .problem span {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
         }
-        .input-container {
-            margin: 20px 0;
-        }
-        .input-container button {
+        input[type="number"], input[type="text"] {
             padding: 10px;
-            font-size: 1em;
-            margin: 5px;
+            font-size: 18px;
+            margin: 10px;
+            width: 100px;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            margin: 10px;
             cursor: pointer;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
+            touch-action: manipulation;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            min-height: 48px;
         }
-        .input-container button:hover {
+        button:hover {
             background-color: #45a049;
         }
-        .submit-btn {
-            padding: 10px 20px;
-            font-size: 1em;
-            cursor: pointer;
-            background-color: #008CBA;
-            color: white;
-            border: none;
-            border-radius: 5px;
+        #shareButton {
+            background-color: #1a73e8;
         }
-        .submit-btn:hover {
-            background-color: #007399;
+        #shareButton:hover {
+            background-color: #1557b0;
         }
-        .result-container {
-            margin-top: 30px;
-            text-align: left;
-            display: inline-block;
+        #result {
+            font-size: 18px;
+            margin-top: 10px;
+            color: red;
+        }
+        #encouragement {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #333;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            font-size: 14px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -62,188 +127,355 @@
             text-align: center;
         }
         th {
-            background-color: #f2f2f2;
-        }
-        .action-buttons button {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 1em;
-            cursor: pointer;
             background-color: #4CAF50;
             color: white;
+        }
+        .correct { color: green; }
+        .incorrect { color: red; }
+        .keyboard {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin: 10px auto;
+            max-width: 300px;
+        }
+        .keyboard button {
+            padding: 15px;
+            font-size: 20px;
+            background-color: #666666;
+            color: #ffffff;
             border: none;
             border-radius: 5px;
+            min-height: 48px;
         }
-        .action-buttons button:hover {
-            background-color: #45a049;
+        .keyboard button:active {
+            background-color: #555555;
         }
-        .author {
-            font-size: 1em;
+        .keyboard .zero-button {
+            grid-column: 2;
+        }
+        .keyboard .delete-button {
+            grid-column: 3;
+            background-color: #ff0000;
+        }
+        .keyboard .delete-button:active {
+            background-color: #cc0000;
+        }
+        #shareArea {
+            background-color: white;
+            padding: 10px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
             color: #666;
-            margin-top: 50px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            .problem {
+                font-size: 20px;
+            }
+            input[type="number"], input[type="text"] {
+                font-size: 16px;
+                width: 80px;
+            }
+            button {
+                font-size: 16px;
+                padding: 10px 30px;
+            }
+            #submitButton {
+                width: 240px;
+                margin-top: 5px;
+            }
+            .keyboard {
+                display: grid;
+            }
+            #encouragement {
+                font-size: 16px;
+            }
+            .footer {
+                font-size: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>珠心算练习（一位三笔）</h1>
-    <div>
-        选择题目数量：
-        <select id="questionCount">
-            <option value="10">10</option>
-            <option value="40">40</option>
-            <option value="80">80</option>
-            <option value="120">120</option>
-            <option value="160">160</option>
-            <option value="200">200</option>
-            <option value="240">240</option>
-        </select>
-        <button onclick="startPractice()">开始练习</button>
-    </div>
-
-    <div id="practiceSection" style="display: none;">
-        <div class="question-number" id="questionNumber">第 1 题</div>
-        <div id="question"></div>
-        <div class="input-container">
-            <button onclick="inputNumber(7)">7</button>
-            <button onclick="inputNumber(8)">8</button>
-            <button onclick="inputNumber(9)">9</button>
-            <button onclick="inputNumber(4)">4</button>
-            <button onclick="inputNumber(5)">5</button>
-            <button onclick="inputNumber(6)">6</button>
-            <button onclick="inputNumber(1)">1</button>
-            <button onclick="inputNumber(2)">2</button>
-            <button onclick="inputNumber(3)">3</button>
-            <button onclick="inputNumber(0)">0</button>
-            <button onclick="deleteInput()">删除</button>
+    <div class="container">
+        <h1>珠心算练习（一位三笔）</h1>
+        <div id="practice">
+            <h2>第 <span id="currentQuestion">1</span> 题</h2>
+            <div id="problem" class="problem"></div>
+            <input type="number" id="answer" placeholder="输入答案">
+            <div class="keyboard" id="keyboard">
+                <button class="number-button" data-key="7">7</button>
+                <button class="number-button" data-key="8">8</button>
+                <button class="number-button" data-key="9">9</button>
+                <button class="number-button" data-key="4">4</button>
+                <button class="number-button" data-key="5">5</button>
+                <button class="number-button" data-key="6">6</button>
+                <button class="number-button" data-key="1">1</button>
+                <button class="number-button" data-key="2">2</button>
+                <button class="number-button" data-key="3">3</button>
+                <button class="zero-button number-button" data-key="0">0</button>
+                <button class="delete-button" data-key="delete">删除</button>
+            </div>
+            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="checkAnswer()">提交</button>
+            <div id="result"></div>
         </div>
-        <button class="submit-btn" onclick="submitAnswer()">提交</button>
-    </div>
-
-    <div id="resultSection" class="result-container" style="display: none;">
-        <h2>练习结果</h2>
-        <p>姓名：<span id="resultName"></span></p>
-        <p>答对题数：<span id="correctCount"></span></p>
-        <p>总用时：<span id="totalTime"></span></p>
-        <p>完成时间：<span id="completeTime"></span></p>
-        <div class="action-buttons">
-            <button onclick="shareResult()">分享</button>
-            <button onclick="returnToMain()">返回主页</button>
-            <button onclick="showAnalysis()">题目分析</button>
+        <div id="summary" style="display: none;">
+            <div id="shareArea">
+                <h2>练习结果</h2>
+                <p>姓名：<span id="userNameDisplay"></span></p>
+                <p>答对题数：<span id="correctCount"></span></p>
+                <p>总用时：<span id="totalTime"></span></p>
+                <p>完成时间：<span id="completionTime"></span></p>
+            </div>
+            <p id="encouragement"></p>
+            <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="shareResult()">分享</button>
+            <button type="button" onclick="returnToHome()" ontouchstart="returnToHome()">返回主页</button>
+            <h3>题目分析</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>题目</th>
+                        <th>你的答案</th>
+                        <th>正确性</th>
+                        <th>正确答案</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTable"></tbody>
+            </table>
         </div>
-        <table id="analysisTable" style="display: none;">
-            <tr>
-                <th>题目</th>
-                <th>你的答案</th>
-                <th>正确性</th>
-                <th>正确答案</th>
-            </tr>
-        </table>
+        <div class="footer">
+            <p>作者：颜毅翔</p>
+            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+        </div>
     </div>
-
-    <div class="author">
-        作者：颜毅翔<br>
-        AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。
-    </div>
+    <canvas id="shareCanvas" style="display: none;"></canvas>
 
     <script>
-        let currentQuestion = 0;
-        let questions = [];
-        let userAnswers = [];
-        let correctCount = 0;
+        let problems = [];
+        let currentIndex = 0;
         let startTime;
+        let numQuestions;
+        let userName;
+        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const encouragements = [
+            '太棒了！你的努力让人佩服！',
+            '继续加油，你越来越厉害了！',
+            '哇，算得真快！再接再厉！',
+            '很棒的表现，保持下去！',
+            '你真是个珠心算小能手！',
+            '进步神速，继续挑战吧！'
+        ];
+
+        function inputKey(key) {
+            const input = document.getElementById('answer');
+            if (key === 'delete') {
+                input.value = '';
+            } else {
+                input.value = input.value + key;
+            }
+        }
+
+        function formatDateTime(date) {
+            const offset = 8 * 60;
+            const localDate = new Date(date.getTime() + offset * 60 * 1000);
+            const year = localDate.getUTCFullYear();
+            const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getUTCDate()).padStart(2, '0');
+            const hours = String(localDate.getUTCHours()).padStart(2, '0');
+            const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+            const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function generateProblem() {
+            let num1, num2, num3, op1, op2, result;
+            do {
+                num1 = Math.floor(Math.random() * 9) + 1;
+                num2 = Math.floor(Math.random() * 9) + 1;
+                num3 = Math.floor(Math.random() * 9) + 1;
+                op1 = Math.random() > 0.5 ? '+' : '-';
+                op2 = Math.random() > 0.5 ? '+' : '-';
+                let temp = op1 === '+' ? num1 + num2 : num1 - num2;
+                result = op2 === '+' ? temp + num3 : temp - num3;
+            } while (
+                num1 === 0 || num2 === 0 || num3 === 0 ||
+                result < 0 || result > 9 ||
+                (op1 === '-' && num1 < num2) ||
+                (op2 === '-' && (op1 === '+' ? num1 + num2 : num1 - num2) < num3) ||
+                (op1 === '+' && num1 + num2 > 9) ||
+                (op2 === '+' && (op1 === '+' ? num1 + num2 : num1 - num2) + num3 > 9)
+            );
+
+            const practiceText = [
+                `<span>${num1}</span>`,
+                `<span>${op1 === '+' ? num2 : `-${num2}`}</span>`,
+                `<span>${op2 === '+' ? num3 : `-${num3}`}</span>`
+            ].join('<br>');
+
+            const summaryText = [
+                num1,
+                op1 + num2,
+                op2 + num3
+            ].join(' ');
+
+            return { practiceText, summaryText, answer: result };
+        }
 
         function startPractice() {
-            const count = parseInt(document.getElementById('questionCount').value);
-            questions = generateQuestions(count);
-            currentQuestion = 0;
-            correctCount = 0;
-            userAnswers = [];
+            userName = localStorage.getItem('userName');
+            if (!userName) {
+                window.location.href = 'index.html';
+                return;
+            }
+            numQuestions = 40; // Default number of questions
+            problems = [];
+            for (let i = 0; i < numQuestions; i++) {
+                problems.push(generateProblem());
+            }
+            currentIndex = 0;
             startTime = new Date();
-            document.getElementById('practiceSection').style.display = 'block';
-            document.getElementById('resultSection').style.display = 'none';
-            showQuestion();
+            document.getElementById('practice').style.display = 'block';
+            showProblem();
         }
 
-        function generateQuestions(count) {
-            const qs = [];
-            for (let i = 0; i < count; i++) {
-                const num1 = Math.floor(Math.random() * 10);
-                const num2 = Math.floor(Math.random() * 10);
-                const num3 = Math.floor(Math.random() * 10);
-                const op1 = Math.random() > 0.5 ? '+' : '-';
-                const op2 = Math.random() > 0.5 ? '+' : '-';
-                let answer = num1;
-                answer = op1 === '+' ? answer + num2 : answer - num2;
-                answer = op2 === '+' ? answer + num3 : answer - num3;
-                const question = `${num1} ${op1} ${num2} ${op2} ${num3} = `;
-                qs.push({ question, answer });
+        function showProblem() {
+            if (currentIndex >= problems.length) {
+                showSummary();
+                return;
             }
-            return qs;
+            document.getElementById('currentQuestion').innerText = currentIndex + 1;
+            document.getElementById('problem').innerHTML = problems[currentIndex].practiceText;
+            document.getElementById('problem').dataset.answer = problems[currentIndex].answer;
+            document.getElementById('answer').value = '';
+            document.getElementById('result').innerText = '';
         }
 
-        function showQuestion() {
-            if (currentQuestion < questions.length) {
-                document.getElementById('questionNumber').textContent = `第 ${currentQuestion + 1} 题`;
-                document.getElementById('question').textContent = questions[currentQuestion].question;
-                document.getElementById('question').dataset.answer = '';
-            } else {
-                showResult();
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('answer').value);
+            const correctAnswer = parseInt(document.getElementById('problem').dataset.answer);
+            if (isNaN(userAnswer)) {
+                document.getElementById('result').innerText = '请输入答案！';
+                return;
             }
-        }
-
-        function inputNumber(num) {
-            const questionDiv = document.getElementById('question');
-            questionDiv.dataset.answer += num.toString();
-            questionDiv.textContent = questions[currentQuestion].question + questionDiv.dataset.answer;
-        }
-
-        function deleteInput() {
-            const questionDiv = document.getElementById('question');
-            questionDiv.dataset.answer = questionDiv.dataset.answer.slice(0, -1);
-            questionDiv.textContent = questions[currentQuestion].question + questionDiv.dataset.answer;
-        }
-
-        function submitAnswer() {
-            const userAnswer = parseInt(document.getElementById('question').dataset.answer);
-            const correctAnswer = questions[currentQuestion].answer;
-            const isCorrect = userAnswer === correctAnswer;
-            if (isCorrect) correctCount++;
-            userAnswers.push({ question: questions[currentQuestion].question, userAnswer, isCorrect, correctAnswer });
-            currentQuestion++;
-            showQuestion();
-        }
-
-        function showResult() {
-            const endTime = new Date();
-            const totalTime = ((endTime - startTime) / 1000).toFixed(2);
-            document.getElementById('practiceSection').style.display = 'none';
-            document.getElementById('resultSection').style.display = 'block';
-            document.getElementById('resultName').textContent = localStorage.getItem('userName') || '未输入姓名';
-            document.getElementById('correctCount').textContent = correctCount;
-            document.getElementById('totalTime').textContent = `${totalTime} 秒`;
-            document.getElementById('completeTime').textContent = endTime.toLocaleString('zh-CN');
-        }
-
-        function showAnalysis() {
-            const table = document.getElementById('analysisTable');
-            table.style.display = 'table';
-            while (table.rows.length > 1) table.deleteRow(1);
-            userAnswers.forEach(ua => {
-                const row = table.insertRow();
-                row.insertCell().textContent = ua.question;
-                row.insertCell().textContent = ua.userAnswer;
-                row.insertCell().textContent = ua.isCorrect ? '正确' : '错误';
-                row.insertCell().textContent = ua.correctAnswer;
-            });
+            problems[currentIndex].userAnswer = userAnswer;
+            problems[currentIndex].correct = userAnswer === correctAnswer;
+            currentIndex++;
+            showProblem();
         }
 
         function shareResult() {
-            alert('分享功能待实现！');
+            const shareArea = document.getElementById('shareArea');
+            const canvas = document.getElementById('shareCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = shareArea.offsetWidth;
+            const height = shareArea.offsetHeight + 90;
+            canvas.width = width;
+            canvas.height = height;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+            const xLeft = 20;
+            let y = 30;
+            const lineHeight = 30;
+            ctx.font = '20px bold Arial';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            const xCenter = width / 2;
+            ctx.fillText('珠心算练习结果', xCenter, y);
+            y += lineHeight;
+            ctx.fillText('（一位三笔）', xCenter, y);
+            y += lineHeight;
+            ctx.textAlign = 'left';
+            ctx.font = '16px bold Arial';
+            ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.font = '16px Arial';
+            ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
+            y += 2 * lineHeight;
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#666666';
+            ctx.textAlign = 'center';
+            ctx.fillText('作者：颜毅翔', xCenter, y);
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'result.png', { type: 'image/png' });
+                if (navigator.share && isMobile) {
+                    navigator.share({
+                        files: [file],
+                        title: '珠心算练习结果',
+                        text: '看看我的珠心算练习成绩！'
+                    }).catch(err => console.error('分享失败:', err));
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'result.png';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            });
         }
 
-        function returnToMain() {
-            window.location.href = 'main.html';
+        function showSummary() {
+            document.getElementById('practice').style.display = 'none';
+            document.getElementById('summary').style.display = 'block';
+            const endTime = new Date();
+            const timeTaken = Math.round((endTime - startTime) / 1000);
+            const correctCount = problems.filter(p => p.correct).length;
+            document.getElementById('userNameDisplay').innerText = userName;
+            document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
+            document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
+            document.getElementById('completionTime').innerText = formatDateTime(endTime);
+            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+            const table = document.getElementById('summaryTable');
+            table.innerHTML = '';
+            problems.forEach((problem, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${problem.summaryText}</td>
+                    <td>${problem.userAnswer !== undefined ? problem.userAnswer : '-'}</td>
+                    <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? '正确' : '错误'}</td>
+                    <td>${problem.answer}</td>
+                `;
+                table.appendChild(row);
+            });
         }
+
+        function returnToHome() {
+            window.location.href = 'home.html';
+        }
+
+        window.onload = () => {
+            document.getElementById('practice').style.display = 'block';
+            if (!isMobile) {
+                document.getElementById('keyboard').style.display = 'none';
+            }
+            document.getElementById('answer').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
+            const buttons = document.querySelectorAll('.keyboard button');
+            buttons.forEach(button => {
+                const key = button.dataset.key;
+                if (isMobile) {
+                    button.addEventListener('touchstart', (event) => {
+                        event.preventDefault();
+                        inputKey(key);
+                    });
+                } else {
+                    button.addEventListener('click', () => inputKey(key));
+                }
+            });
+
+            startPractice();
+        };
     </script>
 </body>
 </html>
