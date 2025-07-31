@@ -113,22 +113,26 @@ function downloadReport(problems, startTime, numQuestions, userName, practiceNam
     const margin = 20;
     let y = 20;
 
+    // Register Chinese font
+    doc.addFont('NotoSansCJKsc-normal.js', 'NotoSansCJKsc', 'normal');
+    doc.setFont('NotoSansCJKsc');
+
     // Header
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
+    doc.setFont('NotoSansCJKsc', 'bold');
     doc.text('珠心算练习报告', pageWidth / 2, y, { align: 'center' });
     y += 10;
     doc.setFontSize(16);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSansCJKsc', 'normal');
     doc.text(`（${practiceName}）`, pageWidth / 2, y, { align: 'center' });
     y += 15;
 
     // Student Details
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSansCJKsc', 'bold');
     doc.text(`姓名：${userName}`, margin, y);
     y += 10;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSansCJKsc', 'normal');
     const endTime = new Date();
     const timeTaken = Math.round((endTime - startTime) / 1000);
     const correctCount = problems.filter(p => p.correct).length;
@@ -149,7 +153,7 @@ function downloadReport(problems, startTime, numQuestions, userName, practiceNam
             p.correct ? '✓' : '✗',
             p.answer
         ]),
-        styles: { font: 'helvetica', fontSize: 10, cellPadding: 2 },
+        styles: { font: 'NotoSansCJKsc', fontSize: 10, cellPadding: 2 },
         headStyles: { fillColor: [76, 175, 80] },
         columnStyles: {
             0: { cellWidth: 80 },
@@ -162,7 +166,7 @@ function downloadReport(problems, startTime, numQuestions, userName, practiceNam
     // Footer
     y = doc.lastAutoTable.finalY + 20;
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSansCJKsc', 'normal');
     doc.setTextColor(102, 102, 102);
     doc.text('作者：颜毅翔', pageWidth / 2, y, { align: 'center' });
 
