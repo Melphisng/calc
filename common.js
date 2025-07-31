@@ -107,70 +107,83 @@ function shareResult(userName, practiceName) {
 }
 
 function downloadReport(problems, startTime, numQuestions, userName, practiceName) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    let y = 20;
-
-    // Register Chinese font
-    doc.addFont('NotoSansCJKsc-normal.js', 'NotoSansCJKsc', 'normal');
-    doc.setFont('NotoSansCJKsc');
-
-    // Header
-    doc.setFontSize(20);
-    doc.setFont('NotoSansCJKsc', 'bold');
-    doc.text('珠心算练习报告', pageWidth / 2, y, { align: 'center' });
-    y += 10;
-    doc.setFontSize(16);
-    doc.setFont('NotoSansCJKsc', 'normal');
-    doc.text(`（${practiceName}）`, pageWidth / 2, y, { align: 'center' });
-    y += 15;
-
-    // Student Details
-    doc.setFontSize(12);
-    doc.setFont('NotoSansCJKsc', 'bold');
-    doc.text(`姓名：${userName}`, margin, y);
-    y += 10;
-    doc.setFont('NotoSansCJKsc', 'normal');
-    const endTime = new Date();
-    const timeTaken = Math.round((endTime - startTime) / 1000);
-    const correctCount = problems.filter(p => p.correct).length;
-    doc.text(`答对题数：${correctCount}/${numQuestions}`, margin, y);
-    y += 10;
-    doc.text(`总用时：${timeTaken} 秒`, margin, y);
-    y += 10;
-    doc.text(`完成时间：${formatDateTime(endTime)}`, margin, y);
-    y += 15;
-
-    // Table
-    doc.autoTable({
-        startY: y,
-        head: [['题目', '你的答案', '正确性', '正确答案']],
-        body: problems.map(p => [
-            p.summaryText,
-            p.userAnswer !== undefined ? p.userAnswer : '-',
-            p.correct ? '✓' : '✗',
-            p.answer
-        ]),
-        styles: { font: 'NotoSansCJKsc', fontSize: 10, cellPadding: 2 },
-        headStyles: { fillColor: [76, 175, 80] },
-        columnStyles: {
-            0: { cellWidth: 80 },
-            1: { cellWidth: 40 },
-            2: { cellWidth: 30, halign: 'center' },
-            3: { cellWidth: 30 }
+    try {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            throw new Error('jsPDF 库未加载，请检查网络连接或刷新页面。');
         }
-    });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        let y = 20;
 
-    // Footer
-    y = doc.lastAutoTable.finalY + 20;
-    doc.setFontSize(10);
-    doc.setFont('NotoSansCJKsc', 'normal');
-    doc.setTextColor(102, 102, 102);
-    doc.text('作者：颜毅翔', pageWidth / 2, y, { align: 'center' });
+        // Try to register Chinese font, fall back to Helvetica if unavailable
+        try {
+            doc.addFont('NotoSansCJKsc-normal.js', 'NotoSansCJKsc', 'normal');
+            doc.setFont('NotoSansCJKsc');
+        } catch (e) {
+            console.warn('NotoSansCJKsc font failed to load, falling back to Helvetica:', e);
+            doc.setFont('Helvetica');
+        }
 
-    // Save PDF
-    const timestamp = formatDateTime(endTime).replace(/[: -]/g, '');
-    doc.save(`report_${practiceName}_${timestamp}.pdf`);
+        // Header
+        doc.setFontSize(20);
+        doc.setFont(undefined, 'bold');
+        doc.text('珠心算练习报告', pageWidth / 2, y, { align: 'center' });
+        y += 10;
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'normal');
+        doc.text(`（${practiceName}）`, pageWidth / 2, y, { align: 'center' });
+        y += 15;
+
+        // Student Details
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(`姓名：${userName}`, margin, y);
+        y += 10;
+        doc.setFont(undefined, 'normal');
+        const endTime = new Date();
+        const timeTaken = Math.round((endTime - startTime) / 1000);
+        const correctCount = problems.filter(p => p.correct).length;
+        doc.text(`答对题数：${correctCount}/${numQuestions}`, margin, y);
+        y += 10;
+        doc.text(`总用时：${timeTaken} 秒`, margin, y);
+        y += 10;
+        doc.text(`完成时间：${formatDateTime(endTime)}`, margin, y);
+        y += 15;
+
+        // Table
+        doc.autoTable({
+            startY: y,
+            head: [['题目', '你的答案', '正确性', '正确答案']],
+            body: problems.map(p => [
+                p.summaryText,
+                p.userAnswer !== undefined ? p.userAnswer : '-',
+                p.correct ? '✓' : '✗',
+                p.answer
+            ]),
+            styles: { font: doc.getFont().fontName, fontSize: 10, cellPadding: 2 },
+            headStyles: { fillColor: [76, 175, 80] },
+            columnStyles: {
+                0: { cellWidth: 80 },
+                1: { cellWidth: 40 },
+                2: { cellWidth: 30, halign: 'center' },
+                3: { cellWidth: 30 }
+            }
+        });
+
+        // Footer
+        y = doc.lastAutoTable.finalY + 20;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(102, 102, 102);
+        doc.text('作者：颜毅翔', pageWidth / 2, y, { align: 'center' });
+
+        // Save PDF
+        const timestamp = formatDateTime(endTime).replace(/[: -]/g, '');
+        doc.save(`report_${practiceName}_${timestamp}.pdf`);
+    } catch (error) {
+        console.error('PDF 生成失败:', error);
+        alert('无法生成报告，请检查网络连接或刷新页面后重试。');
+    }
 }
