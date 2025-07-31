@@ -42,6 +42,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>珠心算练习（一位五笔加减）</title>
     <style>
         body {
@@ -240,7 +243,7 @@
                 <button class="zero-button number-button" data-key="0">0</button>
                 <button class="delete-button" data-key="delete">删除</button>
             </div>
-            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="checkAnswer()">提交</button>
+            <button id="submitButton" type="button" onclick="checkAnswer()">提交</button>
             <div id="result"></div>
         </div>
         <div id="summary" style="display: none;">
@@ -252,8 +255,8 @@
                 <p>完成时间：<span id="completionTime"></span></p>
             </div>
             <p id="encouragement"></p>
-            <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="shareResult()">分享</button>
-            <button type="button" onclick="returnToHome()" ontouchstart="returnToHome()">返回主页</button>
+            <button id="shareButton" type="button" onclick="shareResult()">分享</button>
+            <button type="button" onclick="returnToHome()">返回主页</button>
             <h3>题目分析</h3>
             <table>
                 <thead>
@@ -475,8 +478,6 @@
                         files: [file],
                         title: '珠心算练习结果',
                         text: '看看我的珠心算练习成绩！'
-                    }).then(() => {
-                        URL.revokeObjectURL(URL.createObjectURL(blob)); // Clean up after share
                     }).catch(err => console.error('分享失败:', err));
                 } else {
                     const url = URL.createObjectURL(blob);
@@ -525,34 +526,23 @@
             }
 
             const keyboard = document.getElementById('keyboard');
-            keyboard.removeEventListener('touchstart', handleKeyboardTouch, true);
-            keyboard.addEventListener('touchstart', handleKeyboardTouch, true);
+            keyboard.addEventListener('touchstart', (event) => {
+                if (event.target.tagName === 'BUTTON') {
+                    event.preventDefault();
+                    inputKey(event.target.dataset.key);
+                }
+            }, false);
 
-            const answerInput = document.getElementById('answer');
-            answerInput.removeEventListener('keydown', handleEnterKey);
-            answerInput.addEventListener('keydown', handleEnterKey);
-            answerInput.focus(); // Force focus on input
+            document.getElementById('answer').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
 
             startPractice();
         }
 
-        function handleKeyboardTouch(event) {
-            const target = event.target;
-            if (target.tagName === 'BUTTON') {
-                const key = target.dataset.key;
-                event.preventDefault();
-                inputKey(key);
-            }
-        }
-
-        function handleEnterKey(event) {
-            if (event.key === 'Enter') {
-                checkAnswer();
-            }
-        }
-
         window.addEventListener('pageshow', (event) => {
-            console.log('pageshow fired, persisted:', event.persisted);
             initializePage();
         });
     </script>
