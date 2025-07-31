@@ -390,6 +390,47 @@
             return { practiceText, summaryText, answer: result };
         }
 
+        function initializePage() {
+            document.getElementById('practice').style.display = 'block';
+            if (!isMobile) {
+                document.getElementById('keyboard').style.display = 'none';
+            }
+
+            // Remove existing event listeners to prevent duplicates
+            const buttons = document.querySelectorAll('.keyboard button');
+            buttons.forEach(button => {
+                // Clone the button to remove all existing listeners
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+            });
+
+            // Re-query buttons after cloning
+            const newButtons = document.querySelectorAll('.keyboard button');
+            newButtons.forEach(button => {
+                const key = button.dataset.key;
+                if (isMobile) {
+                    button.addEventListener('touchstart', (event) => {
+                        event.preventDefault();
+                        inputKey(key);
+                    });
+                } else {
+                    button.addEventListener('click', () => inputKey(key));
+                }
+            });
+
+            // Remove and reattach keydown listener for answer input
+            const answerInput = document.getElementById('answer');
+            const newAnswerInput = answerInput.cloneNode(true);
+            answerInput.parentNode.replaceChild(newAnswerInput, answerInput);
+            newAnswerInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
+            startPractice();
+        }
+
         function startPractice() {
             userName = localStorage.getItem('userName');
             numQuestions = parseInt(localStorage.getItem('numQuestions')) || 10;
@@ -516,32 +557,10 @@
             window.location.href = 'home.html';
         }
 
-        window.onload = () => {
-            document.getElementById('practice').style.display = 'block';
-            if (!isMobile) {
-                document.getElementById('keyboard').style.display = 'none';
-            }
-            document.getElementById('answer').addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    checkAnswer();
-                }
-            });
-
-            const buttons = document.querySelectorAll('.keyboard button');
-            buttons.forEach(button => {
-                const key = button.dataset.key;
-                if (isMobile) {
-                    button.addEventListener('touchstart', (event) => {
-                        event.preventDefault();
-                        inputKey(key);
-                    });
-                } else {
-                    button.addEventListener('click', () => inputKey(key));
-                }
-            });
-
-            startPractice();
-        };
+        window.addEventListener('pageshow', (event) => {
+            console.log('pageshow fired, persisted:', event.persisted);
+            initializePage();
+        });
     </script>
 </body>
 </html>
