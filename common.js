@@ -43,7 +43,7 @@ function showSummary(problems, currentIndex, startTime, numQuestions, userName, 
         row.innerHTML = `
             <td>${problem.summaryText}</td>
             <td>${problem.userAnswer !== undefined ? problem.userAnswer : '-'}</td>
-            <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? '✓' : '✗'}</td>
+            <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? '正确' : '错误'}</td>
             <td>${problem.answer}</td>
         `;
         table.appendChild(row);
@@ -106,84 +106,77 @@ function shareResult(userName, practiceName) {
     });
 }
 
-function downloadReport(problems, startTime, numQuestions, userName, practiceName) {
-    try {
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            throw new Error('jsPDF 库未加载，请检查网络连接或刷新页面。');
-        }
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 20;
-        let y = 20;
+function downloadReport(problems, userName, practiceName, startTime, numQuestions) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Generate canvas image from shareResult logic
+    const shareArea = document.getElementById('shareArea');
+    const canvas = document.getElementById('shareCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = shareArea.offsetWidth;
+    const height = shareArea.offsetHeight + 90;
+    canvas.width = width;
+    canvas.height = height;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, width, height);
+    const xLeft = 20;
+    let y = 30;
+    const lineHeight = 30;
+    ctx.font = '20px bold Arial';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+    const xCenter = width / 2;
+    ctx.fillText('珠心算练习报告', xCenter, y);
+    y += lineHeight;
+    ctx.fillText(`（${practiceName}）`, xCenter, y);
+    y += lineHeight;
+    ctx.textAlign = 'left';
+    ctx.font = '16px bold Arial';
+    ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
+    y += lineHeight;
+    ctx.font = '16px Arial';
+    ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
+    y += lineHeight;
+    ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
+    y += lineHeight;
+    ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
+    y += 2 * lineHeight;
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#666666';
+    ctx.textAlign = 'center';
+    ctx.fillText('作者：颜毅翔', xCenter, y);
 
-        // Try to register Chinese font, fall back to Helvetica if unavailable
-        try {
-            doc.addFont('NotoSansCJKsc-normal.js', 'NotoSansCJKsc', 'normal');
-            doc.setFont('NotoSansCJKsc');
-        } catch (e) {
-            console.warn('NotoSansCJKsc font failed to load, falling back to Helvetica:', e);
-            doc.setFont('Helvetica');
-        }
+    // Add image to PDF
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = 160; // Scale to fit A4 (210mm = ~595pt at 72 DPI)
+    const imgHeight = (height / width) * imgWidth;
+    doc.addImage(imgData, 'PNG', 25, 10, imgWidth, imgHeight);
 
-        // Header
-        doc.setFontSize(20);
-        doc.setFont(undefined, 'bold');
-        doc.text('珠心算练习报告', pageWidth / 2, y, { align: 'center' });
-        y += 10;
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'normal');
-        doc.text(`（${practiceName}）`, pageWidth / 2, y, { align: 'center' });
-        y += 15;
+    // Add table
+    const tableData = problems.map(problem => ({
+        question: problem.summaryText,
+        yourAnswer: problem.userAnswer !== undefined ? problem.userAnswer : '-',
+        correctness: problem.correct ? '✓' : '✗',
+        answer: problem.answer,
+        isCorrect: problem.correct
+    }));
 
-        // Student Details
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text(`姓名：${userName}`, margin, y);
-        y += 10;
-        doc.setFont(undefined, 'normal');
-        const endTime = new Date();
-        const timeTaken = Math.round((endTime - startTime) / 1000);
-        const correctCount = problems.filter(p => p.correct).length;
-        doc.text(`答对题数：${correctCount}/${numQuestions}`, margin, y);
-        y += 10;
-        doc.text(`总用时：${timeTaken} 秒`, margin, y);
-        y += 10;
-        doc.text(`完成时间：${formatDateTime(endTime)}`, margin, y);
-        y += 15;
-
-        // Table
-        doc.autoTable({
-            startY: y,
-            head: [['题目', '你的答案', '正确性', '正确答案']],
-            body: problems.map(p => [
-                p.summaryText,
-                p.userAnswer !== undefined ? p.userAnswer : '-',
-                p.correct ? '✓' : '✗',
-                p.answer
-            ]),
-            styles: { font: doc.getFont().fontName, fontSize: 10, cellPadding: 2 },
-            headStyles: { fillColor: [76, 175, 80] },
-            columnStyles: {
-                0: { cellWidth: 80 },
-                1: { cellWidth: 40 },
-                2: { cellWidth: 30, halign: 'center' },
-                3: { cellWidth: 30 }
+    doc.autoTable({
+        startY: imgHeight + 20,
+        head: [['Question', 'Your Answer', 'Correctness', 'Answer']],
+        body: tableData.map(row => [row.question, row.yourAnswer, row.correctness, row.answer]),
+        styles: { halign: 'center', cellPadding: 3, fontSize: 10 },
+        headStyles: { fillColor: [76, 175, 80], textColor: [255, 255, 255] },
+        columnStyles: {
+            1: { // Your Answer column
+                textColor: (data) => data.row.raw.isCorrect ? [0, 139, 139] : [255, 0, 0]
             }
-        });
+        },
+        theme: 'grid'
+    });
 
-        // Footer
-        y = doc.lastAutoTable.finalY + 20;
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(102, 102, 102);
-        doc.text('作者：颜毅翔', pageWidth / 2, y, { align: 'center' });
-
-        // Save PDF
-        const timestamp = formatDateTime(endTime).replace(/[: -]/g, '');
-        doc.save(`report_${practiceName}_${timestamp}.pdf`);
-    } catch (error) {
-        console.error('PDF 生成失败:', error);
-        alert('无法生成报告，请检查网络连接或刷新页面后重试。');
-    }
+    // Save PDF
+    const timestamp = formatDateTime(new Date()).replace(/[: ]/g, '-');
+    doc.save(`report_${practiceName}_${timestamp}.pdf`);
 }

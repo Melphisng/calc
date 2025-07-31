@@ -44,8 +44,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>珠心算练习（一位五笔加减）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <script src="NotoSansCJKsc-normal.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -111,17 +110,11 @@
         button:hover {
             background-color: #45a049;
         }
-        #shareButton {
+        #shareButton, #downloadButton {
             background-color: #1a73e8;
         }
-        #shareButton:hover {
+        #shareButton:hover, #downloadButton:hover {
             background-color: #1557b0;
-        }
-        #downloadButton {
-            background-color: #ff9800;
-        }
-        #downloadButton:hover {
-            background-color: #e68900;
         }
         #result {
             font-size: 18px;
@@ -210,9 +203,9 @@
             button {
                 font-size: 16px;
                 padding: 10px 20px;
-                margin: 5px;
+                width: 100px;
             }
-            #submitButton, #shareButton, #downloadButton {
+            #submitButton {
                 width: 240px;
             }
             .keyboard {
@@ -261,7 +254,7 @@
             </div>
             <p id="encouragement"></p>
             <button id="shareButton" type="button" onclick="shareResult(userName, '一位五笔加减')" ontouchstart="shareResult(userName, '一位五笔加减')">分享</button>
-            <button id="downloadButton" type="button" onclick="downloadReport(problems, startTime, numQuestions, userName, '一位五笔加减')" ontouchstart="downloadReport(problems, startTime, numQuestions, userName, '一位五笔加减')">下载报告</button>
+            <button id="downloadButton" type="button" onclick="downloadReport(problems, userName, '一位五笔加减', startTime, numQuestions)" ontouchstart="downloadReport(problems, userName, '一位五笔加减', startTime, numQuestions)">下载报告</button>
             <button type="button" onclick="returnToHome()" ontouchstart="returnToHome()">返回主页</button>
             <h3>题目分析</h3>
             <table>
@@ -426,7 +419,6 @@
         }
 
         window.onload = () => {
-            console.log('Loading 一位五笔加减.html scripts...');
             document.getElementById('practice').style.display = 'block';
             if (!isMobile) {
                 document.getElementById('keyboard').style.display = 'none';
