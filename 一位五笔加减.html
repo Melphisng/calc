@@ -435,7 +435,10 @@
             showProblem();
         }
 
+        let isSharing = false;
         function shareResult() {
+            if (isSharing) return;
+            isSharing = true;
             const shareArea = document.getElementById('shareArea');
             const canvas = document.getElementById('shareCanvas');
             const ctx = canvas.getContext('2d');
@@ -487,6 +490,7 @@
                     a.click();
                     URL.revokeObjectURL(url);
                 }
+                isSharing = false;
             });
         }
 
@@ -519,16 +523,11 @@
             window.location.href = 'home.html';
         }
 
-        window.onload = () => {
+        function initializePage() {
             document.getElementById('practice').style.display = 'block';
             if (!isMobile) {
                 document.getElementById('keyboard').style.display = 'none';
             }
-            document.getElementById('answer').addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    checkAnswer();
-                }
-            });
 
             const buttons = document.querySelectorAll('.keyboard button');
             buttons.forEach(button => {
@@ -543,8 +542,18 @@
                 }
             });
 
+            document.getElementById('answer').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
             startPractice();
-        };
+        }
+
+        window.addEventListener('pageshow', (event) => {
+            initializePage();
+        });
     </script>
 </body>
 </html>
