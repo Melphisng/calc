@@ -43,6 +43,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>珠心算练习（两位三笔加减）</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -102,9 +104,7 @@
             border: none;
             border-radius: 5px;
             touch-action: manipulation;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
+            display: inline-block;
             min-height: 48px;
         }
         button:hover {
@@ -115,6 +115,12 @@
         }
         #shareButton:hover {
             background-color: #1557b0;
+        }
+        #downloadButton {
+            background-color: #ff9800;
+        }
+        #downloadButton:hover {
+            background-color: #e68900;
         }
         #result {
             font-size: 18px;
@@ -202,9 +208,10 @@
             }
             button {
                 font-size: 16px;
-                padding: 10px 30px;
+                padding: 10px 20px;
+                margin: 5px;
             }
-            #submitButton {
+            #submitButton, #shareButton, #downloadButton {
                 width: 240px;
             }
             .keyboard {
@@ -252,7 +259,8 @@
                 <p>完成时间：<span id="completionTime"></span></p>
             </div>
             <p id="encouragement"></p>
-            <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="shareResult()">分享</button>
+            <button id="shareButton" type="button" onclick="shareResult(userName, '两位三笔加减')" ontouchstart="shareResult(userName, '两位三笔加减')">分享</button>
+            <button id="downloadButton" type="button" onclick="downloadReport(problems, startTime, numQuestions, userName, '两位三笔加减')" ontouchstart="downloadReport(problems, startTime, numQuestions, userName, '两位三笔加减')">下载报告</button>
             <button type="button" onclick="returnToHome()" ontouchstart="returnToHome()">返回主页</button>
             <h3>题目分析</h3>
             <table>
@@ -274,6 +282,7 @@
     </div>
     <canvas id="shareCanvas" style="display: none;"></canvas>
 
+    <script src="common.js"></script>
     <script>
         let problems = [];
         let currentIndex = 0;
@@ -283,15 +292,6 @@
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let lastInputTime = 0;
         const debounceDelay = 200;
-
-        const encouragements = [
-            '太棒了！你的努力让人佩服！',
-            '继续加油，你越来越厉害了！',
-            '哇，算得真快！再接再厉！',
-            '很棒的表现，保持下去！',
-            '你真是个珠心算小能手！',
-            '进步神速，继续挑战吧！'
-        ];
 
         const directOperations = {
             '+': {
@@ -330,18 +330,6 @@
             } else {
                 input.value = input.value + key;
             }
-        }
-
-        function formatDateTime(date) {
-            const offset = 8 * 60;
-            const localDate = new Date(date.getTime() + offset * 60 * 1000);
-            const year = localDate.getUTCFullYear();
-            const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
-            const day = String(localDate.getUTCDate()).padStart(2, '0');
-            const hours = String(localDate.getUTCHours()).padStart(2, '0');
-            const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
-            const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
-            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         }
 
         function generateProblem() {
@@ -429,7 +417,7 @@
 
         function showProblem() {
             if (currentIndex >= problems.length) {
-                showSummary();
+                showSummary(problems, currentIndex, startTime, numQuestions, userName, '两位三笔加减');
                 return;
             }
             document.getElementById('currentQuestion').innerText = currentIndex + 1;
@@ -450,86 +438,6 @@
             problems[currentIndex].correct = userAnswer === correctAnswer;
             currentIndex++;
             showProblem();
-        }
-
-        function shareResult() {
-            const shareArea = document.getElementById('shareArea');
-            const canvas = document.getElementById('shareCanvas');
-            const ctx = canvas.getContext('2d');
-            const width = shareArea.offsetWidth;
-            const height = shareArea.offsetHeight + 90;
-            canvas.width = width;
-            canvas.height = height;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, width, height);
-            const xLeft = 20;
-            let y = 30;
-            const lineHeight = 30;
-            ctx.font = '20px bold Arial';
-            ctx.fillStyle = 'black';
-            ctx.textAlign = 'center';
-            const xCenter = width / 2;
-            ctx.fillText('珠心算练习结果', xCenter, y);
-            y += lineHeight;
-            ctx.fillText('（两位三笔加减）', xCenter, y);
-            y += lineHeight;
-            ctx.textAlign = 'left';
-            ctx.font = '16px bold Arial';
-            ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
-            y += lineHeight;
-            ctx.font = '16px Arial';
-            ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
-            y += lineHeight;
-            ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
-            y += lineHeight;
-            ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
-            y += 2 * lineHeight;
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#666666';
-            ctx.textAlign = 'center';
-            ctx.fillText('作者：颜毅翔', xCenter, y);
-            canvas.toBlob(blob => {
-                const file = new File([blob], 'result.png', { type: 'image/png' });
-                if (navigator.share && isMobile) {
-                    navigator.share({
-                        files: [file],
-                        title: '珠心算练习结果',
-                        text: '看看我的珠心算练习成绩！'
-                    }).catch(err => console.error('分享失败:', err));
-                } else {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'result.png';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                }
-            });
-        }
-
-        function showSummary() {
-            document.getElementById('practice').style.display = 'none';
-            document.getElementById('summary').style.display = 'block';
-            const endTime = new Date();
-            const timeTaken = Math.round((endTime - startTime) / 1000);
-            const correctCount = problems.filter(p => p.correct).length;
-            document.getElementById('userNameDisplay').innerText = userName;
-            document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
-            document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
-            document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
-            const table = document.getElementById('summaryTable');
-            table.innerHTML = '';
-            problems.forEach((problem, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${problem.summaryText}</td>
-                    <td>${problem.userAnswer !== undefined ? problem.userAnswer : '-'}</td>
-                    <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? '正确' : '错误'}</td>
-                    <td>${problem.answer}</td>
-                `;
-                table.appendChild(row);
-            });
         }
 
         function returnToHome() {
