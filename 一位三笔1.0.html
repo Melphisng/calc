@@ -43,8 +43,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>珠心算练习（一位三笔普通运算）</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -103,16 +101,18 @@
             border: none;
             border-radius: 5px;
             touch-action: manipulation;
-            display: inline-block;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
             min-height: 48px;
         }
         button:hover {
             background-color: #45a049;
         }
-        #shareButton, #downloadButton {
+        #shareButton {
             background-color: #1a73e8;
         }
-        #shareButton:hover, #downloadButton:hover {
+        #shareButton:hover {
             background-color: #1557b0;
         }
         #result {
@@ -166,10 +166,10 @@
         }
         .keyboard .delete-button {
             grid-column: 3;
-            background-color: #ff0000 !important;
+            background-color: #ff0000;
         }
         .keyboard .delete-button:active {
-            background-color: #cc0000 !important;
+            background-color: #cc0000;
         }
         #shareArea {
             background-color: white;
@@ -197,8 +197,7 @@
             }
             button {
                 font-size: 16px;
-                padding: 10px 20px;
-                width: 100px;
+                padding: 10px 30px;
             }
             #submitButton {
                 width: 240px;
@@ -250,7 +249,6 @@
             </div>
             <p id="encouragement"></p>
             <button id="shareButton" type="button" onclick="shareResult(userName, '一位三笔普通运算')" ontouchstart="shareResult(userName, '一位三笔普通运算')">分享</button>
-            <button id="downloadButton" type="button" onclick="downloadReport(problems, userName, '一位三笔普通运算', startTime, numQuestions)" ontouchstart="downloadReport(problems, userName, '一位三笔普通运算', startTime, numQuestions)">下载报告</button>
             <button type="button" onclick="returnToHome()" ontouchstart="returnToHome()">返回主页</button>
             <h3>题目分析</h3>
             <table>
@@ -281,21 +279,15 @@
         let userName;
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let lastInputTime = 0;
-        const debounceDelay = 200; // Revert to old debounce delay
+        const debounceDelay = 200;
 
         function inputKey(key) {
-            const now = Date.now();
-            if (now - lastInputTime < debounceDelay) return; // Revert to old debounce logic
-            lastInputTime = now;
-
             const input = document.getElementById('answer');
-            if (!input) return;
             if (key === 'delete') {
                 input.value = '';
             } else {
                 input.value = input.value + key;
             }
-            input.focus(); // Ensure focus after input
         }
 
         function generateProblem() {
@@ -358,7 +350,6 @@
             document.getElementById('problem').innerHTML = problems[currentIndex].practiceText;
             document.getElementById('problem').dataset.answer = problems[currentIndex].answer;
             document.getElementById('answer').value = '';
-            document.getElementById('answer').focus();
             document.getElementById('result').innerText = '';
         }
 
