@@ -399,7 +399,6 @@
             ctx.font = '16px Arial';
             ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
             y += lineHeight;
-            ctx.font = '16px Arial';
             ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
@@ -437,28 +436,7 @@
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
             document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            
-            const percentage = (correctCount / numQuestions) * 100;
-            let encouragement;
-            if (correctCount === 0) {
-                encouragement = "看起来有点困难哦！别担心，找老师或家长帮忙，一起解决会更容易！";
-            } else if (percentage < 30) {
-                encouragement = "已经迈出第一步了！继续尝试，多练习几次，你会越来越棒！";
-            } else if (percentage < 60) {
-                encouragement = "不错哦，已经有进步了！继续加油，你一定可以做得更好！";
-            } else if (percentage < 70) {
-                encouragement = "很棒的成绩！再加把劲，你会更上一层楼！";
-            } else if (percentage < 80) {
-                encouragement = "太厉害了，你的努力很了不起！再多练习，你会更出色！";
-            } else if (percentage < 90) {
-                encouragement = "非常棒，表现很优秀！再细心一点，你就接近完美了！";
-            } else if (percentage < 100) {
-                encouragement = "哇，接近全对了！你的珠心算水平超强，继续保持！";
-            } else {
-                encouragement = "全对！你是珠心算小天才！太了不起了，继续闪耀吧！";
-            }
-            document.getElementById('encouragement').innerText = encouragement;
-            
+            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
             problems.forEach((problem, index) => {
