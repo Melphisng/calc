@@ -390,47 +390,6 @@
             return { practiceText, summaryText, answer: result };
         }
 
-        function initializePage() {
-            document.getElementById('practice').style.display = 'block';
-            if (!isMobile) {
-                document.getElementById('keyboard').style.display = 'none';
-            }
-
-            // Remove existing event listeners to prevent duplicates
-            const buttons = document.querySelectorAll('.keyboard button');
-            buttons.forEach(button => {
-                // Clone the button to remove all existing listeners
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-            });
-
-            // Re-query buttons after cloning
-            const newButtons = document.querySelectorAll('.keyboard button');
-            newButtons.forEach(button => {
-                const key = button.dataset.key;
-                if (isMobile) {
-                    button.addEventListener('touchstart', (event) => {
-                        event.preventDefault();
-                        inputKey(key);
-                    });
-                } else {
-                    button.addEventListener('click', () => inputKey(key));
-                }
-            });
-
-            // Remove and reattach keydown listener for answer input
-            const answerInput = document.getElementById('answer');
-            const newAnswerInput = answerInput.cloneNode(true);
-            answerInput.parentNode.replaceChild(newAnswerInput, answerInput);
-            newAnswerInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    checkAnswer();
-                }
-            });
-
-            startPractice();
-        }
-
         function startPractice() {
             userName = localStorage.getItem('userName');
             numQuestions = parseInt(localStorage.getItem('numQuestions')) || 10;
@@ -516,6 +475,8 @@
                         files: [file],
                         title: '珠心算练习结果',
                         text: '看看我的珠心算练习成绩！'
+                    }).then(() => {
+                        URL.revokeObjectURL(URL.createObjectURL(blob)); // Clean up after share
                     }).catch(err => console.error('分享失败:', err));
                 } else {
                     const url = URL.createObjectURL(blob);
@@ -555,6 +516,39 @@
 
         function returnToHome() {
             window.location.href = 'home.html';
+        }
+
+        function initializePage() {
+            document.getElementById('practice').style.display = 'block';
+            if (!isMobile) {
+                document.getElementById('keyboard').style.display = 'none';
+            }
+
+            const keyboard = document.getElementById('keyboard');
+            keyboard.removeEventListener('touchstart', handleKeyboardTouch, true);
+            keyboard.addEventListener('touchstart', handleKeyboardTouch, true);
+
+            const answerInput = document.getElementById('answer');
+            answerInput.removeEventListener('keydown', handleEnterKey);
+            answerInput.addEventListener('keydown', handleEnterKey);
+            answerInput.focus(); // Force focus on input
+
+            startPractice();
+        }
+
+        function handleKeyboardTouch(event) {
+            const target = event.target;
+            if (target.tagName === 'BUTTON') {
+                const key = target.dataset.key;
+                event.preventDefault();
+                inputKey(key);
+            }
+        }
+
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
         }
 
         window.addEventListener('pageshow', (event) => {
