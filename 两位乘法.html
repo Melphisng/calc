@@ -42,7 +42,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（一位三笔普通运算）</title>
+    <title>珠心算练习（乘法二位x一位）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -75,21 +75,23 @@
         }
         .problem {
             font-size: 24px;
-            margin: 10px 0;
+            margin: 20px 0;
             text-align: center;
+            display: inline-block;
         }
         .problem span {
             display: inline-block;
-            width: 40px;
-            text-align: right;
+            min-width: 80px;
+            text-align: center;
         }
         input[type="number"], input[type="text"] {
             padding: 10px;
             font-size: 18px;
-            margin: 10px;
-            width: 100px;
+            margin: 10px auto;
+            width: 120px;
             -webkit-appearance: none;
             -moz-appearance: textfield;
+            display: block;
         }
         button {
             padding: 12px 24px;
@@ -166,10 +168,10 @@
         }
         .keyboard .delete-button {
             grid-column: 3;
-            background-color: #ff0000;
+            background-color: #ff0000 !important;
         }
         .keyboard .delete-button:active {
-            background-color: #cc0000;
+            background-color: #cc0000 !important;
         }
         #shareArea {
             background-color: white;
@@ -191,9 +193,13 @@
             .problem {
                 font-size: 20px;
             }
+            .problem span {
+                min-width: 60px;
+            }
             input[type="number"], input[type="text"] {
                 font-size: 16px;
-                width: 80px;
+                width: 100px;
+                margin: 5px auto;
             }
             button {
                 font-size: 16px;
@@ -201,7 +207,6 @@
             }
             #submitButton {
                 width: 240px;
-                margin-top: 5px;
             }
             .keyboard {
                 display: grid;
@@ -218,7 +223,7 @@
 <body>
     <div class="container">
         <h1>珠心算练习</h1>
-        <h2>（一位三笔普通运算）</h2>
+        <h2>（乘法二位x一位）</h2>
         <div id="practice">
             <h2>第 <span id="currentQuestion">1</span> 题</h2>
             <div id="problem" class="problem"></div>
@@ -277,6 +282,9 @@
         let numQuestions;
         let userName;
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let lastInputTime = 0;
+        const debounceDelay = 200;
+
         const encouragements = [
             '太棒了！你的努力让人佩服！',
             '继续加油，你越来越厉害了！',
@@ -287,7 +295,12 @@
         ];
 
         function inputKey(key) {
+            const now = Date.now();
+            if (now - lastInputTime < debounceDelay) return;
+            lastInputTime = now;
+
             const input = document.getElementById('answer');
+            if (!input) return;
             if (key === 'delete') {
                 input.value = '';
             } else {
@@ -308,36 +321,11 @@
         }
 
         function generateProblem() {
-            let num1, num2, num3, op1, op2, result;
-            do {
-                num1 = Math.floor(Math.random() * 9) + 1;
-                num2 = Math.floor(Math.random() * 9) + 1;
-                num3 = Math.floor(Math.random() * 9) + 1;
-                op1 = Math.random() > 0.5 ? '+' : '-';
-                op2 = Math.random() > 0.5 ? '+' : '-';
-                let temp = op1 === '+' ? num1 + num2 : num1 - num2;
-                result = op2 === '+' ? temp + num3 : temp - num3;
-            } while (
-                num1 === 0 || num2 === 0 || num3 === 0 ||
-                result < 0 || result > 9 ||
-                (op1 === '-' && num1 < num2) ||
-                (op2 === '-' && (op1 === '+' ? num1 + num2 : num1 - num2) < num3) ||
-                (op1 === '+' && num1 + num2 > 9) ||
-                (op2 === '+' && (op1 === '+' ? num1 + num2 : num1 - num2) + num3 > 9)
-            );
-
-            const practiceText = [
-                `<span>${num1}</span>`,
-                `<span>${op1 === '+' ? num2 : `-${num2}`}</span>`,
-                `<span>${op2 === '+' ? num3 : `-${num3}`}</span>`
-            ].join('<br>');
-
-            const summaryText = [
-                num1,
-                op1 + num2,
-                op2 + num3
-            ].join(' ');
-
+            const num1 = Math.floor(Math.random() * 90) + 10; // 10-99
+            const num2 = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = num1 * num2;
+            const practiceText = `<span>${num1} × ${num2} =</span>`;
+            const summaryText = `${num1} × ${num2}`;
             return { practiceText, summaryText, answer: result };
         }
 
@@ -402,7 +390,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位三笔普通运算）', xCenter, y);
+            ctx.fillText('（乘法二位x一位）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';

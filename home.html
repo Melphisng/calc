@@ -164,10 +164,10 @@
         <h1>珠心算练习</h1>
         <div class="options">
             <div class="option">
-                <label for="numQuestionsSingle">一位普通运算 - 题目数量：</label>
+                <label for="numQuestionsSingle">一位三笔普通运算 - 题目数量：</label>
                 <select id="numQuestionsSingle">
-                    <option value="10">10</option>
-                    <option value="40" selected>40</option>
+                    <option value="10" selected>10</option>
+                    <option value="40">40</option>
                     <option value="80">80</option>
                     <option value="120">120</option>
                     <option value="160">160</option>
@@ -177,10 +177,10 @@
                 <button class="option-button" onclick="startPractice('一位三笔1.0.html', 'numQuestionsSingle')" ontouchstart="startPractice('一位三笔1.0.html', 'numQuestionsSingle')">开始练习</button>
             </div>
             <div class="option">
-                <label for="numQuestionsDirect">一位直加直减 - 题目数量：</label>
+                <label for="numQuestionsDirect">一位三笔直加直减 - 题目数量：</label>
                 <select id="numQuestionsDirect">
-                    <option value="10">10</option>
-                    <option value="40" selected>40</option>
+                    <option value="10" selected>10</option>
+                    <option value="40">40</option>
                     <option value="80">80</option>
                     <option value="120">120</option>
                     <option value="160">160</option>
@@ -188,6 +188,32 @@
                     <option value="240">240</option>
                 </select>
                 <button class="option-button" onclick="startPractice('直加直减1.0.html', 'numQuestionsDirect')" ontouchstart="startPractice('直加直减1.0.html', 'numQuestionsDirect')">开始练习</button>
+            </div>
+            <div class="option">
+                <label for="numQuestionsSingleMult">乘法(一位x一位) - 题目数量：</label>
+                <select id="numQuestionsSingleMult">
+                    <option value="10" selected>10</option>
+                    <option value="40">40</option>
+                    <option value="80">80</option>
+                    <option value="120">120</option>
+                    <option value="160">160</option>
+                    <option value="200">200</option>
+                    <option value="240">240</option>
+                </select>
+                <button class="option-button" onclick="startPractice('一位乘法.html', 'numQuestionsSingleMult')" ontouchstart="startPractice('一位乘法.html', 'numQuestionsSingleMult')">开始练习</button>
+            </div>
+            <div class="option">
+                <label for="numQuestionsDoubleMult">乘法(二位x一位) - 题目数量：</label>
+                <select id="numQuestionsDoubleMult">
+                    <option value="10" selected>10</option>
+                    <option value="40">40</option>
+                    <option value="80">80</option>
+                    <option value="120">120</option>
+                    <option value="160">160</option>
+                    <option value="200">200</option>
+                    <option value="240">240</option>
+                </select>
+                <button class="option-button" onclick="startPractice('两位乘法.html', 'numQuestionsDoubleMult')" ontouchstart="startPractice('两位乘法.html', 'numQuestionsDoubleMult')">开始练习</button>
             </div>
         </div>
         <div>
