@@ -64,6 +64,7 @@
             text-align: center;
             max-width: 100%;
             box-sizing: border-box;
+            position: relative;
         }
         h1 {
             font-size: 32px;
@@ -146,8 +147,17 @@
             display: none;
             grid-template-columns: repeat(3, 1fr);
             gap: 5px;
-            margin: 10px auto;
+            margin: 0 auto;
             max-width: 300px;
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background-color: white;
+            border-top: 1px solid #ddd;
+            padding: 10px 0;
+            z-index: 1000;
         }
         .keyboard button {
             padding: 15px;
@@ -166,10 +176,10 @@
         }
         .keyboard .delete-button {
             grid-column: 3;
-            background-color: #ff0000;
+            background-color: #ff0000 !important;
         }
         .keyboard .delete-button:active {
-            background-color: #cc0000;
+            background-color: #cc0000 !important;
         }
         #shareArea {
             background-color: white;
@@ -281,14 +291,16 @@
         let userName;
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let lastInputTime = 0;
-        const debounceDelay = 200;
 
         function inputKey(key) {
             const input = document.getElementById('answer');
+            if (!input) return;
             if (key === 'delete') {
                 input.value = '';
+                input.focus();
             } else {
                 input.value = input.value + key;
+                input.focus();
             }
         }
 
@@ -352,6 +364,7 @@
             document.getElementById('problem').innerHTML = problems[currentIndex].practiceText;
             document.getElementById('problem').dataset.answer = problems[currentIndex].answer;
             document.getElementById('answer').value = '';
+            document.getElementById('answer').focus();
             document.getElementById('result').innerText = '';
         }
 
@@ -376,6 +389,8 @@
             document.getElementById('practice').style.display = 'block';
             if (!isMobile) {
                 document.getElementById('keyboard').style.display = 'none';
+            } else {
+                document.getElementById('answer').focus(); // Ensure input is focused on mobile load
             }
             document.getElementById('answer').addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
@@ -390,7 +405,7 @@
                     button.addEventListener('touchstart', (event) => {
                         event.preventDefault();
                         inputKey(key);
-                    });
+                    }, { passive: false });
                 } else {
                     button.addEventListener('click', () => inputKey(key));
                 }
