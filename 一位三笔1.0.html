@@ -75,7 +75,7 @@
         }
         .problem {
             font-size: 24px;
-            margin: 10px 0;
+            margin: 20px 0;
             text-align: center;
         }
         .problem span {
@@ -288,6 +288,7 @@
 
         function inputKey(key) {
             const input = document.getElementById('answer');
+            if (!input) return;
             if (key === 'delete') {
                 input.value = '';
             } else {
@@ -467,19 +468,18 @@
             window.location.href = 'home.html';
         }
 
-        window.onload = () => {
-            document.getElementById('practice').style.display = 'block';
-            if (!isMobile) {
-                document.getElementById('keyboard').style.display = 'none';
-            }
-            document.getElementById('answer').addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    checkAnswer();
-                }
+        function initializeKeyboard() {
+            const buttons = document.querySelectorAll('.keyboard button');
+            // Remove existing event listeners to prevent duplicates
+            buttons.forEach(button => {
+                // Clone the button to remove existing listeners
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
             });
 
-            const buttons = document.querySelectorAll('.keyboard button');
-            buttons.forEach(button => {
+            // Re-query buttons after cloning
+            const newButtons = document.querySelectorAll('.keyboard button');
+            newButtons.forEach(button => {
                 const key = button.dataset.key;
                 if (isMobile) {
                     button.addEventListener('touchstart', (event) => {
@@ -490,9 +490,22 @@
                     button.addEventListener('click', () => inputKey(key));
                 }
             });
+        }
 
+        window.addEventListener('pageshow', (event) => {
+            document.getElementById('practice').style.display = 'block';
+            if (!isMobile) {
+                document.getElementById('keyboard').style.display = 'none';
+            }
+            document.getElementById('answer').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+
+            initializeKeyboard();
             startPractice();
-        };
+        });
     </script>
 </body>
 </html>
