@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（一位五笔加减）</title>
+    <title>珠心算练习（两位乘法）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,17 +28,18 @@
             font-size: 24px;
             margin: 20px 0;
             text-align: center;
+            display: inline-block;
         }
         .problem span {
             display: inline-block;
-            width: 40px;
-            text-align: right;
+            min-width: 80px; /* 适应两位数 */
+            text-align: center;
         }
         input[type="number"], input[type="text"] {
             padding: 10px;
             font-size: 18px;
             margin: 10px auto;
-            width: 80px;
+            width: 120px; /* 适应三位数答案 */
             -webkit-appearance: none;
             -moz-appearance: textfield;
             display: block;
@@ -140,11 +141,11 @@
                 font-size: 20px;
             }
             .problem span {
-                width: 40px;
+                min-width: 60px;
             }
             input[type="number"], input[type="text"] {
                 font-size: 16px;
-                width: 80px;
+                width: 100px;
                 margin: 5px auto;
             }
             button {
@@ -256,30 +257,6 @@
             '进步神速，继续挑战吧！'
         ];
 
-        // 直加直减允许的操作列表，排除0作为运算数
-        const directOperations = {
-            '+': {
-                1: [1, 2, 3],
-                2: [1, 2],
-                3: [1],
-                5: [1, 2, 3, 4],
-                6: [1, 2, 3],
-                7: [1, 2],
-                8: [1]
-            },
-            '-': {
-                1: [1],
-                2: [1, 2],
-                3: [1, 2, 3],
-                4: [1, 2, 3, 4],
-                5: [5],
-                6: [1, 5, 6],
-                7: [1, 2, 5, 6, 7],
-                8: [1, 2, 3, 5, 6, 7, 8],
-                9: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-            }
-        };
-
         function inputKey(key) {
             const now = Date.now();
             if (now - lastInputTime < debounceDelay) return; // 防抖
@@ -309,53 +286,11 @@
         }
 
         function generateProblem() {
-            let nums = [];
-            let ops = [''];
-            let temp, result;
-            let numberCount = {}; // 跟踪每个数字出现次数
-
-            // 随机选择第一个数字（1-9，排除0）
-            nums.push(Math.floor(Math.random() * 9) + 1);
-            numberCount[nums[0]] = (numberCount[nums[0]] || 0) + 1;
-            temp = nums[0];
-
-            for (let i = 1; i < 5; i++) { // 5 numbers, 4 operations
-                let op = Math.random() > 0.5 ? '+' : '-';
-                let possibleNums = directOperations[op][temp];
-                if (!possibleNums || possibleNums.length === 0) {
-                    return generateProblem(); // 递归重试
-                }
-                // 过滤掉出现次数超过2的数字
-                possibleNums = possibleNums.filter(num => (numberCount[num] || 0) < 2);
-                if (possibleNums.length === 0) {
-                    return generateProblem(); // 递归重试
-                }
-                let num = possibleNums[Math.floor(Math.random() * possibleNums.length)];
-                numberCount[num] = (numberCount[num] || 0) + 1;
-                let newTemp = op === '+' ? temp + num : temp - num;
-                if (newTemp < 0 || newTemp > 99) { // 允许两位数中间结果
-                    return generateProblem(); // 递归重试
-                }
-                temp = newTemp;
-                nums.push(num);
-                ops.push(op);
-            }
-            result = temp;
-
-            // 确保最终结果是一位数
-            if (result < 0 || result > 9) {
-                return generateProblem();
-            }
-
-            const practiceArr = nums.map((num, i) => {
-                let sign = ops[i] === '-' ? '-' : (i === 0 ? '' : '');
-                return `<span>${sign}${num}</span>`;
-            });
-            const practiceText = practiceArr.join('<br>');
-
-            const summaryArr = nums.map((num, i) => ops[i] + num);
-            const summaryText = summaryArr.join(' ');
-
+            const num1 = Math.floor(Math.random() * 90) + 10; // 10-99
+            const num2 = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = num1 * num2;
+            const practiceText = `<span>${num1} × ${num2} =</span>`;
+            const summaryText = `${num1} × ${num2}`;
             return { practiceText, summaryText, answer: result };
         }
 
@@ -421,7 +356,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位五笔加减）', xCenter, y);
+            ctx.fillText('（两位乘法）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';

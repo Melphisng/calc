@@ -1,48 +1,9 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（乘法一位x一位）</title>
+    <title>珠心算练习（一位乘法）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -62,16 +23,6 @@
             text-align: center;
             max-width: 100%;
             box-sizing: border-box;
-        }
-        h1 {
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-        h2 {
-            font-size: 24px;
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-weight: normal;
         }
         .problem {
             font-size: 24px;
@@ -117,7 +68,7 @@
         #shareButton:hover {
             background-color: #1557b0;
         }
-        #result {
+        #result, #setupError {
             font-size: 18px;
             margin-top: 10px;
             color: red;
@@ -159,9 +110,11 @@
             border: none;
             border-radius: 5px;
             min-height: 48px;
+            transition: background-color 0.1s, transform 0.1s;
         }
         .keyboard button:active {
-            background-color: #555555;
+            transform: scale(0.95);
+            background-color: #555555 !important;
         }
         .keyboard .zero-button {
             grid-column: 2;
@@ -184,12 +137,6 @@
             text-align: center;
         }
         @media (max-width: 600px) {
-            h1 {
-                font-size: 24px;
-            }
-            h2 {
-                font-size: 18px;
-            }
             .problem {
                 font-size: 20px;
             }
@@ -205,11 +152,15 @@
                 font-size: 16px;
                 padding: 10px 30px;
             }
-            #submitButton {
+            #submitButton, #startButton {
                 width: 240px;
             }
             .keyboard {
                 display: grid;
+            }
+            .keyboard button {
+                padding: 20px;
+                font-size: 24px;
             }
             #encouragement {
                 font-size: 16px;
@@ -222,26 +173,38 @@
 </head>
 <body>
     <div class="container">
-        <h1>珠心算练习</h1>
-        <h2>（乘法一位x一位）</h2>
-        <div id="practice">
+        <div id="setup" style="display: block;">
+            <label for="numQuestions">选择题目数量：</label>
+            <select id="numQuestions">
+                <option value="10">10</option>
+                <option value="40">40</option>
+                <option value="80">80</option>
+                <option value="120">120</option>
+                <option value="160">160</option>
+                <option value="200">200</option>
+                <option value="240">240</option>
+            </select>
+            <button id="startButton" type="button" onclick="startPractice()" ontouchstart="">开始练习</button>
+            <div id="setupError"></div>
+        </div>
+        <div id="practice" style="display: none;">
             <h2>第 <span id="currentQuestion">1</span> 题</h2>
             <div id="problem" class="problem"></div>
             <input type="number" id="answer" placeholder="输入答案">
             <div class="keyboard" id="keyboard">
-                <button class="number-button" data-key="7">7</button>
-                <button class="number-button" data-key="8">8</button>
-                <button class="number-button" data-key="9">9</button>
-                <button class="number-button" data-key="4">4</button>
-                <button class="number-button" data-key="5">5</button>
-                <button class="number-button" data-key="6">6</button>
-                <button class="number-button" data-key="1">1</button>
-                <button class="number-button" data-key="2">2</button>
-                <button class="number-button" data-key="3">3</button>
-                <button class="zero-button number-button" data-key="0">0</button>
+                <button data-key="7">7</button>
+                <button data-key="8">8</button>
+                <button data-key="9">9</button>
+                <button data-key="4">4</button>
+                <button data-key="5">5</button>
+                <button data-key="6">6</button>
+                <button data-key="1">1</button>
+                <button data-key="2">2</button>
+                <button data-key="3">3</button>
+                <button class="zero-button" data-key="0">0</button>
                 <button class="delete-button" data-key="delete">删除</button>
             </div>
-            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="checkAnswer()">提交</button>
+            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="">提交</button>
             <div id="result"></div>
         </div>
         <div id="summary" style="display: none;">
@@ -253,8 +216,8 @@
                 <p>完成时间：<span id="completionTime"></span></p>
             </div>
             <p id="encouragement"></p>
-            <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="shareResult()">分享</button>
-            <button type="button" onclick="returnToHome()" ontouchstart="returnToHome()">返回主页</button>
+            <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
+            <button type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
             <h3>题目分析</h3>
             <table>
                 <thead>
@@ -280,10 +243,10 @@
         let currentIndex = 0;
         let startTime;
         let numQuestions;
-        let userName;
+        let userName = localStorage.getItem('userName') || '未知'; // 从localStorage读取
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let lastInputTime = 0;
-        const debounceDelay = 200;
+        const debounceDelay = 100; // 100ms debounce
 
         const encouragements = [
             '太棒了！你的努力让人佩服！',
@@ -296,15 +259,17 @@
 
         function inputKey(key) {
             const now = Date.now();
-            if (now - lastInputTime < debounceDelay) return;
+            if (now - lastInputTime < debounceDelay) return; // 防抖
             lastInputTime = now;
 
             const input = document.getElementById('answer');
-            if (!input) return;
             if (key === 'delete') {
                 input.value = '';
             } else {
-                input.value = input.value + key;
+                input.value += key;
+            }
+            if (isMobile && 'vibrate' in navigator) {
+                navigator.vibrate(50);
             }
         }
 
@@ -330,18 +295,19 @@
         }
 
         function startPractice() {
-            userName = localStorage.getItem('userName');
-            numQuestions = parseInt(localStorage.getItem('numQuestions')) || 10;
-            if (!userName) {
-                window.location.href = 'index.html';
+            if (!userName || userName === '未知') {
+                document.getElementById('setupError').innerText = '请先在主页设置姓名！';
                 return;
             }
+            document.getElementById('setupError').innerText = '';
+            numQuestions = parseInt(document.getElementById('numQuestions').value);
             problems = [];
             for (let i = 0; i < numQuestions; i++) {
                 problems.push(generateProblem());
             }
             currentIndex = 0;
             startTime = new Date();
+            document.getElementById('setup').style.display = 'none';
             document.getElementById('practice').style.display = 'block';
             showProblem();
         }
@@ -390,7 +356,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（乘法一位x一位）', xCenter, y);
+            ctx.fillText('（一位乘法）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -452,34 +418,41 @@
         }
 
         function returnToHome() {
-            window.location.href = 'home.html';
+            window.location.href = 'index.html';
         }
 
         window.onload = () => {
-            document.getElementById('practice').style.display = 'block';
-            if (!isMobile) {
+            document.getElementById('setup').style.display = 'block';
+            const answerInput = document.getElementById('answer');
+            if (isMobile) {
+                answerInput.readOnly = true;
+                document.getElementById('keyboard').style.display = 'grid';
+                answerInput.addEventListener('focus', () => {
+                    answerInput.blur();
+                });
+            } else {
                 document.getElementById('keyboard').style.display = 'none';
             }
-            document.getElementById('answer').addEventListener('keydown', (event) => {
+            answerInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
                     checkAnswer();
                 }
             });
-
             const buttons = document.querySelectorAll('.keyboard button');
             buttons.forEach(button => {
                 const key = button.dataset.key;
+                button.addEventListener('click', () => inputKey(key));
                 if (isMobile) {
                     button.addEventListener('touchstart', (event) => {
                         event.preventDefault();
                         inputKey(key);
                     });
-                } else {
-                    button.addEventListener('click', () => inputKey(key));
                 }
             });
-
-            startPractice();
+            if (!localStorage.getItem('userName')) {
+                document.getElementById('setupError').innerText = '请先在主页设置姓名！';
+                document.getElementById('startButton').disabled = true;
+            }
         };
     </script>
 </body>

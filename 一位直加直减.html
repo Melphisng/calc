@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（一位五笔加减）</title>
+    <title>珠心算练习（直加直减）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,7 +26,7 @@
         }
         .problem {
             font-size: 24px;
-            margin: 20px 0;
+            margin: 10px 0;
             text-align: center;
         }
         .problem span {
@@ -37,11 +37,10 @@
         input[type="number"], input[type="text"] {
             padding: 10px;
             font-size: 18px;
-            margin: 10px auto;
-            width: 80px;
+            margin: 10px;
+            width: 100px;
             -webkit-appearance: none;
             -moz-appearance: textfield;
-            display: block;
         }
         button {
             padding: 12px 24px;
@@ -139,13 +138,9 @@
             .problem {
                 font-size: 20px;
             }
-            .problem span {
-                width: 40px;
-            }
             input[type="number"], input[type="text"] {
                 font-size: 16px;
                 width: 80px;
-                margin: 5px auto;
             }
             button {
                 font-size: 16px;
@@ -312,28 +307,21 @@
             let nums = [];
             let ops = [''];
             let temp, result;
-            let numberCount = {}; // 跟踪每个数字出现次数
 
             // 随机选择第一个数字（1-9，排除0）
             nums.push(Math.floor(Math.random() * 9) + 1);
-            numberCount[nums[0]] = (numberCount[nums[0]] || 0) + 1;
+
             temp = nums[0];
 
-            for (let i = 1; i < 5; i++) { // 5 numbers, 4 operations
+            for (let i = 1; i < 3; i++) { // 3 numbers, 2 operations
                 let op = Math.random() > 0.5 ? '+' : '-';
                 let possibleNums = directOperations[op][temp];
                 if (!possibleNums || possibleNums.length === 0) {
                     return generateProblem(); // 递归重试
                 }
-                // 过滤掉出现次数超过2的数字
-                possibleNums = possibleNums.filter(num => (numberCount[num] || 0) < 2);
-                if (possibleNums.length === 0) {
-                    return generateProblem(); // 递归重试
-                }
                 let num = possibleNums[Math.floor(Math.random() * possibleNums.length)];
-                numberCount[num] = (numberCount[num] || 0) + 1;
                 let newTemp = op === '+' ? temp + num : temp - num;
-                if (newTemp < 0 || newTemp > 99) { // 允许两位数中间结果
+                if (newTemp < 0 || newTemp > 9) {
                     return generateProblem(); // 递归重试
                 }
                 temp = newTemp;
@@ -341,11 +329,6 @@
                 ops.push(op);
             }
             result = temp;
-
-            // 确保最终结果是一位数
-            if (result < 0 || result > 9) {
-                return generateProblem();
-            }
 
             const practiceArr = nums.map((num, i) => {
                 let sign = ops[i] === '-' ? '-' : (i === 0 ? '' : '');
@@ -421,7 +404,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位五笔加减）', xCenter, y);
+            ctx.fillText('（直加直减）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';

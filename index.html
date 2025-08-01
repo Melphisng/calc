@@ -1,48 +1,9 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习 - 登录</title>
+    <title>珠心算练习</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -64,50 +25,70 @@
             box-sizing: border-box;
         }
         h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-weight: bold;
+            color: black;
         }
-        input[type="text"] {
-            padding: 10px;
-            font-size: 18px;
-            margin: 10px;
-            width: 200px;
-            -webkit-appearance: none;
-            -moz-appearance: textfield;
+        .author {
+            font-size: 14px;
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
         }
         button {
             padding: 12px 24px;
             font-size: 18px;
-            margin: 10px;
             cursor: pointer;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
-            touch-action: manipulation;
             min-height: 48px;
+            width: 100%;
+            max-width: 300px;
         }
         button:hover {
             background-color: #45a049;
         }
-        #error {
-            font-size: 18px;
-            margin-top: 10px;
-            color: red;
+        #nameSection {
+            margin-bottom: 20px;
         }
-        .footer {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #666;
+        input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            margin: 10px 0;
+            width: 200px;
+        }
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
         }
         @media (max-width: 600px) {
-            h1 {
-                font-size: 24px;
-            }
-            input[type="text"] {
-                font-size: 16px;
-                width: 160px;
-            }
             button {
                 font-size: 16px;
                 padding: 10px 20px;
@@ -118,29 +99,68 @@
 <body>
     <div class="container">
         <h1>珠心算练习</h1>
-        <label for="userName">请输入姓名：</label><br>
-        <input type="text" id="userName" placeholder="姓名">
-        <div id="error"></div>
-        <button onclick="enterSite()" ontouchstart="enterSite()">进入</button>
-        <div class="footer">
-            <p>作者：颜毅翔</p>
+        <p class="author">作者：颜毅翔</p>
+        <div id="nameSection">
+            <label for="userName">修改姓名：</label>
+            <input type="text" id="userName" placeholder="请输入姓名">
+            <button onclick="saveName()">保存</button>
+        </div>
+        <ul>
+            <li><button onclick="goToPractice('一位直加直减.html')">一位直加直减</button></li>
+            <li><button onclick="goToPractice('一位三笔.html')">一位三笔加减法</button></li>
+            <li><button onclick="goToPractice('一位五笔加减.html')">一位五笔加减法</button></li>
+            <li><button onclick="goToPractice('两位三笔加减.html')">两位三笔加减法</button></li>
+            <li><button onclick="goToPractice('一位乘法.html')">乘法: 一位乘一位</button></li>
+            <li><button onclick="goToPractice('两位乘法.html')">乘法: 两位乘一位</button></li>
+        </ul>
+    </div>
+
+    <!-- 欢迎模态框 -->
+    <div id="welcomeModal" class="modal">
+        <div class="modal-content">
+            <h2>欢迎！</h2>
+            <p>请输入您的姓名：</p>
+            <input type="text" id="welcomeName" placeholder="请输入姓名">
+            <button onclick="saveWelcomeName()">确认</button>
         </div>
     </div>
+
     <script>
-        function enterSite() {
-            const userName = document.getElementById('userName').value.trim();
-            if (!userName) {
-                document.getElementById('error').innerText = '请输入姓名！';
-                return;
-            }
-            localStorage.setItem('userName', userName);
-            window.location.href = 'home.html';
+        // 检查是否已有名字
+        if (!localStorage.getItem('userName')) {
+            document.getElementById('welcomeModal').style.display = 'flex';
+        } else {
+            document.getElementById('userName').value = localStorage.getItem('userName');
         }
-        document.getElementById('userName').addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                enterSite();
+
+        function saveWelcomeName() {
+            const name = document.getElementById('welcomeName').value.trim();
+            if (name) {
+                localStorage.setItem('userName', name);
+                document.getElementById('welcomeModal').style.display = 'none';
+                document.getElementById('userName').value = name;
+            } else {
+                alert('请输入姓名！');
             }
-        });
+        }
+
+        function saveName() {
+            const name = document.getElementById('userName').value.trim();
+            if (name) {
+                localStorage.setItem('userName', name);
+                alert('姓名已保存！');
+            } else {
+                alert('请输入姓名！');
+            }
+        }
+
+        function goToPractice(page) {
+            if (localStorage.getItem('userName')) {
+                window.location.href = page;
+            } else {
+                alert('请先输入姓名！');
+            }
+        }
     </script>
 </body>
 </html>
