@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>珠心算练习（一位五笔加减）</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -66,6 +68,12 @@
         }
         #shareButton:hover {
             background-color: #1557b0;
+        }
+        #pdfButton {
+            background-color: #ff5722;
+        }
+        #pdfButton:hover {
+            background-color: #e64a19;
         }
         #result, #setupError {
             font-size: 18px;
@@ -216,6 +224,7 @@
             </div>
             <p id="encouragement"></p>
             <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
+            <button id="pdfButton" type="button" onclick="generatePDF()" ontouchstart="">生成PDF报告</button>
             <button type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
             <h3>题目分析</h3>
             <table>
@@ -457,9 +466,57 @@
             });
         }
 
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // 捕获分享区域作为图片
+            const shareArea = document.getElementById('shareArea');
+            const canvas = await html2canvas(shareArea);
+            const imgData = canvas.toDataURL('image/png');
+
+            // 添加图片到PDF
+            doc.addImage(imgData, 'PNG', 10, 10, 180, 60); // 调整尺寸和位置
+
+            // 添加表格标题
+            doc.setFontSize(12);
+            doc.text('QUESTION | YOUR ANSWER | CORRECTNESS | ANSWER', 10, 80);
+
+            // 添加表格内容
+            let y = 90;
+            problems.forEach((problem) => {
+                doc.text(problem.summaryText, 10, y);
+                
+                // Your Answer 颜色
+                if (problem.correct) {
+                    doc.setTextColor(0, 128, 128); // 深青色
+                } else {
+                    doc.setTextColor(255, 0, 0); // 红色
+                }
+                doc.text(problem.userAnswer !== undefined ? String(problem.userAnswer) : '-', 60, y);
+
+                // Correctness 颜色
+                if (problem.correct) {
+                    doc.setTextColor(0, 128, 128); // 深青色
+                    doc.text('CORRECT', 110, y);
+                } else {
+                    doc.setTextColor(255, 0, 0); // 红色
+                    doc.text('WRONG', 110, y);
+                }
+
+                // Answer 默认黑色
+                doc.setTextColor(0, 0, 0);
+                doc.text(String(problem.answer), 160, y);
+                y += 10; // 行间距
+            });
+
+            doc.save('珠心算练习报告.pdf');
+        }
+
         function showSummary() {
             document.getElementById('practice').style.display = 'none';
             document.getElementById('summary').style.display = 'block';
+
             const endTime = new Date();
             const timeTaken = Math.round((endTime - startTime) / 1000);
             const correctCount = problems.filter(p => p.correct).length;
@@ -467,16 +524,8 @@
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
             document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            const percentage = (correctCount / numQuestions) * 100;
-            let rating = '';
-            if (percentage >= 90) {
-                rating = '优秀，继续保持！';
-            } else if (percentage >= 70) {
-                rating = '良好，再接再厉！';
-            } else {
-                rating = '加油，下次会更好！';
-            }
-            document.getElementById('encouragement').innerText = rating;
+            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
             problems.forEach((problem, index) => {
@@ -497,25 +546,30 @@
 
         window.onload = () => {
             document.getElementById('setup').style.display = 'block';
+            // 检测设备并设置键盘显示
             const answerInput = document.getElementById('answer');
             if (isMobile) {
-                answerInput.readOnly = true;
-                document.getElementById('keyboard').style.display = 'grid';
+                answerInput.readOnly = true;  // 阻止系统键盘
+                document.getElementById('keyboard').style.display = 'grid';  // 确保显示
+                // 点击输入框时，焦点不弹出键盘（readonly已处理）
                 answerInput.addEventListener('focus', () => {
-                    answerInput.blur();
+                    answerInput.blur();  // 可选：防止焦点停留，但允许显示光标
                 });
             } else {
                 document.getElementById('keyboard').style.display = 'none';
             }
-            answerInput.addEventListener('keydown', (event) => {
+            // 添加 Enter 键提交
+            document.getElementById('answer').addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
+                    console.log('Enter key pressed'); // 调试日志
                     checkAnswer();
                 }
             });
+            // 统一绑定虚拟键盘事件
             const buttons = document.querySelectorAll('.keyboard button');
             buttons.forEach(button => {
                 const key = button.dataset.key;
-                button.addEventListener('click', () => inputKey(key));
+                button.addEventListener('click', () => inputKey(key));  // 电脑点击
                 if (isMobile) {
                     button.addEventListener('touchstart', (event) => {
                         event.preventDefault();
