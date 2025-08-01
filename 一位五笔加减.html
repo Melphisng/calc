@@ -479,10 +479,18 @@
 
             doc.addImage(imgData, 'PNG', 15, 10, pdfWidth, pdfHeight);
 
-            // 表格起始位置
-            let y = pdfHeight + 20;
+            // 添加练习名称
             doc.setFontSize(12);
-            doc.text('QUESTION | YOUR ANSWER | CORRECTNESS | ANSWER', 15, y);
+            doc.text('一位五笔加减', 15, pdfHeight + 15);
+
+            // 表格起始位置
+            let y = pdfHeight + 25;
+            doc.setFontSize(12);
+            doc.setFont('bold');
+            doc.text('QUESTION', 15, y);
+            doc.text('YOUR ANSWER', 65, y);
+            doc.text('CORRECTNESS', 115, y);
+            doc.text('ANSWER', 165, y);
             y += 10;
 
             // 绘制表格
@@ -500,8 +508,9 @@
 
             // 填充表格行
             problems.forEach((problem) => {
+                doc.setFont('normal');
                 doc.setTextColor(0, 0, 0);
-                doc.text(problem.summaryText, 15, y - 3);
+                doc.text(problem.summaryText, 15, y - 3, { align: 'center' });
 
                 // Your Answer 颜色
                 if (problem.correct) {
@@ -509,20 +518,20 @@
                 } else {
                     doc.setTextColor(255, 0, 0); // 红色
                 }
-                doc.text(problem.userAnswer !== undefined ? String(problem.userAnswer) : '-', 65, y - 3);
+                doc.text(problem.userAnswer !== undefined ? String(problem.userAnswer) : '-', 65, y - 3, { align: 'center' });
 
                 // Correctness 颜色
                 if (problem.correct) {
                     doc.setTextColor(0, 128, 128); // 深青色
-                    doc.text('CORRECT', 115, y - 3);
+                    doc.text('CORRECT', 115, y - 3, { align: 'center' });
                 } else {
                     doc.setTextColor(255, 0, 0); // 红色
-                    doc.text('WRONG', 115, y - 3);
+                    doc.text('WRONG', 115, y - 3, { align: 'center' });
                 }
 
                 // Answer 默认黑色
                 doc.setTextColor(0, 0, 0);
-                doc.text(String(problem.answer), 165, y - 3);
+                doc.text(String(problem.answer), 165, y - 3, { align: 'center' });
 
                 // 绘制行线
                 doc.line(15, y, 195, y); // 下横线
