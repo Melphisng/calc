@@ -368,6 +368,7 @@
         }
 
         function startPractice() {
+            console.log('startPractice called');
             if (!userName || userName === '未知') {
                 document.getElementById('setupError').innerText = '请先在主页设置姓名！';
                 return;
@@ -410,7 +411,7 @@
             showProblem();
         }
 
-        function fillCanvas() {
+        function shareResult() {
             const shareArea = document.getElementById('shareArea');
             const canvas = document.getElementById('shareCanvas');
             const ctx = canvas.getContext('2d');
@@ -429,7 +430,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位五笔加减）', xCenter, y);
+            ctx.fillText('（一位三笔）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -446,11 +447,6 @@
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
             ctx.fillText('作者：颜毅翔', xCenter, y);
-        }
-
-        function shareResult() {
-            fillCanvas();
-            const canvas = document.getElementById('shareCanvas');
             canvas.toBlob(blob => {
                 const file = new File([blob], 'result.png', { type: 'image/png' });
                 if (navigator.share && isMobile) {
@@ -471,7 +467,6 @@
         }
 
         function generatePDF() {
-            fillCanvas(); // 确保canvas填充
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
             const canvas = document.getElementById('shareCanvas');
@@ -482,40 +477,29 @@
             pdf.setDrawColor(0, 0, 0); // 黑色实线
 
             // 表格位置，从图片下方开始
-            let y = 100; // 调整根据图片高度
+            let y = 80; // 调整根据图片高度
             const rowHeight = 10;
-            const colWidths = [45, 45, 50, 50]; // 总宽190，确保边界内
-            const pageHeight = pdf.internal.pageSize.height;
-            const bottomMargin = 20;
+            const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
 
             // 绘制表头
-            function drawHeader() {
-                pdf.setFontSize(12);
-                pdf.setTextColor(0, 0, 0);
-                pdf.text('QUESTION', 10 + colWidths[0] / 2, y + 7, { align: 'center' });
-                pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
-                pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
-                pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
-                y += rowHeight;
-                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
-                pdf.line(10, y, 200, y); // 底线
-                let x = 10;
-                colWidths.forEach(width => {
-                    pdf.line(x, y - rowHeight, x, y);
-                    x += width;
-                });
-                pdf.line(x, y - rowHeight, x, y); // 右边线
-            }
-
-            drawHeader();
+            pdf.setFontSize(12);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text('QUESTION', 10 + colWidths[0] / 2, y + 7, { align: 'center' });
+            pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
+            pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
+            pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
+            y += rowHeight;
+            pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
+            pdf.line(10, y, 200, y); // 底线
+            let x = 10;
+            colWidths.forEach(width => {
+                pdf.line(x, y - rowHeight, x, y);
+                x += width;
+            });
+            pdf.line(x, y - rowHeight, x, y); // 右边线
 
             // 绘制表格行
             problems.forEach((problem) => {
-                if (y + rowHeight > pageHeight - bottomMargin) {
-                    pdf.addPage();
-                    y = 20; // 新页顶部
-                    drawHeader();
-                }
                 pdf.setFontSize(10);
                 pdf.setTextColor(0, 0, 0);
                 pdf.text(problem.summaryText, 10 + colWidths[0] / 2, y + 7, { align: 'center' });
@@ -536,14 +520,20 @@
                 pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
 
                 y += rowHeight;
+                if (y > 280) { // 如果超过页底，添加新页
+                    pdf.addPage();
+                    y = 10;
+                }
                 pdf.line(10, y, 200, y); // 底线
-                let x = 10;
+                x = 10;
                 colWidths.forEach(width => {
                     pdf.line(x, y - rowHeight, x, y);
                     x += width;
                 });
                 pdf.line(x, y - rowHeight, x, y); // 右边线
             });
+
+            pdf.save('report.pdf');
         }
 
         function showSummary() {
