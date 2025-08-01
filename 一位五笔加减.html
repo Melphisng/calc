@@ -472,43 +472,71 @@
 
             // 捕获分享区域作为图片
             const shareArea = document.getElementById('shareArea');
-            const canvas = await html2canvas(shareArea);
+            const canvas = await html2canvas(shareArea, { scale: 2 }); // 提高分辨率避免变形
             const imgData = canvas.toDataURL('image/png');
+            const pdfWidth = 180;
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // 保持比例，避免拉长
 
-            // 添加图片到PDF
-            doc.addImage(imgData, 'PNG', 10, 10, 180, 60); // 调整尺寸和位置
+            doc.addImage(imgData, 'PNG', 15, 10, pdfWidth, pdfHeight);
 
-            // 添加表格标题
+            // 表格起始位置
+            let y = pdfHeight + 20;
             doc.setFontSize(12);
-            doc.text('QUESTION | YOUR ANSWER | CORRECTNESS | ANSWER', 10, 80);
+            doc.text('QUESTION | YOUR ANSWER | CORRECTNESS | ANSWER', 15, y);
+            y += 10;
 
-            // 添加表格内容
-            let y = 90;
+            // 绘制表格
+            const colWidths = [50, 50, 50, 40];
+            const rowHeight = 10;
+
+            // 绘制表头线
+            doc.line(15, y - rowHeight, 195, y - rowHeight); // 上横线
+            doc.line(15, y, 195, y); // 下横线
+            let x = 15;
+            colWidths.forEach(width => {
+                doc.line(x, y - rowHeight, x, y); // 垂直线
+                x += width;
+            });
+
+            // 填充表格行
             problems.forEach((problem) => {
-                doc.text(problem.summaryText, 10, y);
-                
+                doc.setTextColor(0, 0, 0);
+                doc.text(problem.summaryText, 15, y - 3);
+
                 // Your Answer 颜色
                 if (problem.correct) {
                     doc.setTextColor(0, 128, 128); // 深青色
                 } else {
                     doc.setTextColor(255, 0, 0); // 红色
                 }
-                doc.text(problem.userAnswer !== undefined ? String(problem.userAnswer) : '-', 60, y);
+                doc.text(problem.userAnswer !== undefined ? String(problem.userAnswer) : '-', 65, y - 3);
 
                 // Correctness 颜色
                 if (problem.correct) {
                     doc.setTextColor(0, 128, 128); // 深青色
-                    doc.text('CORRECT', 110, y);
+                    doc.text('CORRECT', 115, y - 3);
                 } else {
                     doc.setTextColor(255, 0, 0); // 红色
-                    doc.text('WRONG', 110, y);
+                    doc.text('WRONG', 115, y - 3);
                 }
 
                 // Answer 默认黑色
                 doc.setTextColor(0, 0, 0);
-                doc.text(String(problem.answer), 160, y);
-                y += 10; // 行间距
+                doc.text(String(problem.answer), 165, y - 3);
+
+                // 绘制行线
+                doc.line(15, y, 195, y); // 下横线
+                x = 15;
+                colWidths.forEach(width => {
+                    doc.line(x, y - rowHeight, x, y); // 垂直线
+                    x += width;
+                });
+
+                y += rowHeight;
             });
+
+            // 绘制底横线
+            doc.line(15, y, 195, y);
 
             doc.save('珠心算练习报告.pdf');
         }
