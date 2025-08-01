@@ -247,6 +247,7 @@
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let lastInputTime = 0;
         const debounceDelay = 100; // 100ms debounce
+
         const encouragements = [
             '太棒了！你的努力让人佩服！',
             '继续加油，你越来越厉害了！',
@@ -256,6 +257,30 @@
             '进步神速，继续挑战吧！'
         ];
 
+        // 直加直减允许的操作列表，排除0作为运算数
+        const directOperations = {
+            '+': {
+                1: [1, 2, 3],
+                2: [1, 2],
+                3: [1],
+                5: [1, 2, 3, 4],
+                6: [1, 2, 3],
+                7: [1, 2],
+                8: [1]
+            },
+            '-': {
+                1: [1],
+                2: [1, 2],
+                3: [1, 2, 3],
+                4: [1, 2, 3, 4],
+                5: [5],
+                6: [1, 5, 6],
+                7: [1, 2, 5, 6, 7],
+                8: [1, 2, 3, 5, 6, 7, 8],
+                9: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            }
+        };
+
         function inputKey(key) {
             const now = Date.now();
             if (now - lastInputTime < debounceDelay) return; // 防抖
@@ -263,18 +288,17 @@
 
             const input = document.getElementById('answer');
             if (key === 'delete') {
-                input.value = ''; // 删除键清空输入框
+                input.value = '';
             } else {
-                input.value += key; // 追加数字
+                input.value += key;
             }
-            // 可选：手机端添加触感反馈
             if (isMobile && 'vibrate' in navigator) {
-                navigator.vibrate(50);  // 短振动
+                navigator.vibrate(50);
             }
         }
 
         function formatDateTime(date) {
-            const offset = 8 * 60; // UTC+8
+            const offset = 8 * 60;
             const localDate = new Date(date.getTime() + offset * 60 * 1000);
             const year = localDate.getUTCFullYear();
             const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
@@ -449,7 +473,16 @@
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
             document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+            const percentage = (correctCount / numQuestions) * 100;
+            let rating = '';
+            if (percentage >= 90) {
+                rating = '优秀，继续保持！';
+            } else if (percentage >= 70) {
+                rating = '良好，再接再厉！';
+            } else {
+                rating = '加油，下次会更好！';
+            }
+            document.getElementById('encouragement').innerText = rating;
 
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
@@ -502,7 +535,6 @@
                     });
                 }
             });
-            // 如果名字为空，提示返回主页
             if (!localStorage.getItem('userName')) {
                 document.getElementById('setupError').innerText = '请先在主页设置姓名！';
                 document.getElementById('startButton').disabled = true;

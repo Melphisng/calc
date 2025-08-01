@@ -467,7 +467,16 @@
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
             document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+            const percentage = (correctCount / numQuestions) * 100;
+            let rating = '';
+            if (percentage >= 90) {
+                rating = '优秀，继续保持！';
+            } else if (percentage >= 70) {
+                rating = '良好，再接再厉！';
+            } else {
+                rating = '加油，下次会更好！';
+            }
+            document.getElementById('encouragement').innerText = rating;
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
             problems.forEach((problem, index) => {

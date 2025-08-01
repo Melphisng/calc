@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（两位三笔加减）</title>
+    <title>珠心算练习（两位乘法）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,17 +28,18 @@
             font-size: 24px;
             margin: 20px 0;
             text-align: center;
+            display: inline-block;
         }
         .problem span {
             display: inline-block;
-            width: 60px; /* 适应两位数 */
-            text-align: right;
+            min-width: 80px; /* 适应两位数 */
+            text-align: center;
         }
         input[type="number"], input[type="text"] {
             padding: 10px;
             font-size: 18px;
             margin: 10px auto;
-            width: 100px; /* 适应三位数答案 */
+            width: 120px; /* 适应三位数答案 */
             -webkit-appearance: none;
             -moz-appearance: textfield;
             display: block;
@@ -140,11 +141,11 @@
                 font-size: 20px;
             }
             .problem span {
-                width: 50px;
+                min-width: 60px;
             }
             input[type="number"], input[type="text"] {
                 font-size: 16px;
-                width: 80px;
+                width: 100px;
                 margin: 5px auto;
             }
             button {
@@ -285,71 +286,11 @@
         }
 
         function generateProblem() {
-            let nums = [];
-            let ops = [''];
-            let temp, result;
-            let usedNumbers = new Set(); // 确保数字不重复
-
-            // 随机选择第一个两位数（10-99）
-            nums.push(Math.floor(Math.random() * 90) + 10);
-            usedNumbers.add(nums[0]);
-            temp = nums[0];
-
-            // 随机决定操作顺序：加减或减加
-            const opOrder = Math.random() > 0.5 ? ['+', '-'] : ['-', '+'];
-
-            for (let i = 0; i < 2; i++) { // 3 numbers, 2 operations
-                let op = opOrder[i];
-                // 为十位和个位分别选择直加直减操作
-                let tens = Math.floor(temp / 10);
-                let ones = temp % 10;
-                let possibleTens = directOperations[op][tens];
-                let possibleOnes = directOperations[op][ones];
-                if (!possibleTens || !possibleOnes || possibleTens.length === 0 || possibleOnes.length === 0) {
-                    return generateProblem(); // 递归重试
-                }
-
-                let num;
-                let newTemp;
-                let attempts = 0;
-                const maxAttempts = 100; // 防止无限循环
-                do {
-                    let tensNum = possibleTens[Math.floor(Math.random() * possibleTens.length)];
-                    let onesNum = possibleOnes[Math.floor(Math.random() * possibleOnes.length)];
-                    num = tensNum * 10 + onesNum;
-                    if (num < 10 || num > 99 || usedNumbers.has(num)) {
-                        attempts++;
-                        if (attempts > maxAttempts) return generateProblem();
-                        continue;
-                    }
-                    newTemp = op === '+' ? temp + num : temp - num;
-                    if (newTemp < 0 || (i === 1 && (newTemp < 10 || newTemp > 200))) {
-                        attempts++;
-                        if (attempts > maxAttempts) return generateProblem();
-                        continue;
-                    }
-                    break;
-                } while (true);
-
-                usedNumbers.add(num);
-                temp = newTemp;
-                nums.push(num);
-                ops.push(op);
-            }
-            result = temp;
-
-            const practiceArr = nums.map((num, i) => {
-                let sign = ops[i] === '-' ? '-' : (i === 0 ? '' : '');
-                return `<span>${sign}${num}</span>`;
-            });
-            const practiceText = practiceArr.join('<br>');
-
-            const summaryArr = nums.map((num, i) => {
-                let sign = ops[i] === '-' ? '-' : (i === 0 ? '' : '+');
-                return sign + num;
-            });
-            const summaryText = summaryArr.join(' ');
-
+            const num1 = Math.floor(Math.random() * 90) + 10; // 10-99
+            const num2 = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = num1 * num2;
+            const practiceText = `<span>${num1} × ${num2} =</span>`;
+            const summaryText = `${num1} × ${num2}`;
             return { practiceText, summaryText, answer: result };
         }
 
@@ -415,7 +356,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（两位三笔加减）', xCenter, y);
+            ctx.fillText('（两位乘法）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -461,7 +402,16 @@
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
             document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+            const percentage = (correctCount / numQuestions) * 100;
+            let rating = '';
+            if (percentage >= 90) {
+                rating = '优秀，继续保持！';
+            } else if (percentage >= 70) {
+                rating = '良好，再接再厉！';
+            } else {
+                rating = '加油，下次会更好！';
+            }
+            document.getElementById('encouragement').innerText = rating;
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
             problems.forEach((problem, index) => {
