@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>珠心算练习（一位五笔加减）</title>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,12 +66,6 @@
         }
         #shareButton:hover {
             background-color: #1557b0;
-        }
-        #pdfButton {
-            background-color: #ff5722;
-        }
-        #pdfButton:hover {
-            background-color: #e64a19;
         }
         #result, #setupError {
             font-size: 18px;
@@ -224,7 +216,6 @@
             </div>
             <p id="encouragement"></p>
             <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
-            <button id="pdfButton" type="button" onclick="generatePDF()" ontouchstart="">生成PDF报告</button>
             <button type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
             <h3>题目分析</h3>
             <table>
@@ -430,7 +421,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位五笔加减）', xCenter, y);
+            ctx.fillText('（一位三笔）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -466,94 +457,9 @@
             });
         }
 
-        async function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // 捕获分享区域作为图片
-            const shareArea = document.getElementById('shareArea');
-            const canvas = await html2canvas(shareArea, { scale: 2 }); // 提高分辨率避免变形
-            const imgData = canvas.toDataURL('image/png');
-            const pdfWidth = 180;
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // 保持比例，避免拉长
-
-            doc.addImage(imgData, 'PNG', 15, 10, pdfWidth, pdfHeight);
-
-            // 添加练习名称
-            doc.setFontSize(12);
-            doc.text('一位五笔加减', 15, pdfHeight + 15);
-
-            // 表格起始位置
-            let y = pdfHeight + 25;
-            doc.setFontSize(12);
-            doc.setFont('bold');
-            doc.text('QUESTION', 15, y);
-            doc.text('YOUR ANSWER', 65, y);
-            doc.text('CORRECTNESS', 115, y);
-            doc.text('ANSWER', 165, y);
-            y += 10;
-
-            // 绘制表格
-            const colWidths = [50, 50, 50, 40];
-            const rowHeight = 10;
-
-            // 绘制表头线
-            doc.line(15, y - rowHeight, 195, y - rowHeight); // 上横线
-            doc.line(15, y, 195, y); // 下横线
-            let x = 15;
-            colWidths.forEach(width => {
-                doc.line(x, y - rowHeight, x, y); // 垂直线
-                x += width;
-            });
-
-            // 填充表格行
-            problems.forEach((problem) => {
-                doc.setFont('normal');
-                doc.setTextColor(0, 0, 0);
-                doc.text(problem.summaryText, 15, y - 3, { align: 'center' });
-
-                // Your Answer 颜色
-                if (problem.correct) {
-                    doc.setTextColor(0, 128, 128); // 深青色
-                } else {
-                    doc.setTextColor(255, 0, 0); // 红色
-                }
-                doc.text(problem.userAnswer !== undefined ? String(problem.userAnswer) : '-', 65, y - 3, { align: 'center' });
-
-                // Correctness 颜色
-                if (problem.correct) {
-                    doc.setTextColor(0, 128, 128); // 深青色
-                    doc.text('CORRECT', 115, y - 3, { align: 'center' });
-                } else {
-                    doc.setTextColor(255, 0, 0); // 红色
-                    doc.text('WRONG', 115, y - 3, { align: 'center' });
-                }
-
-                // Answer 默认黑色
-                doc.setTextColor(0, 0, 0);
-                doc.text(String(problem.answer), 165, y - 3, { align: 'center' });
-
-                // 绘制行线
-                doc.line(15, y, 195, y); // 下横线
-                x = 15;
-                colWidths.forEach(width => {
-                    doc.line(x, y - rowHeight, x, y); // 垂直线
-                    x += width;
-                });
-
-                y += rowHeight;
-            });
-
-            // 绘制底横线
-            doc.line(15, y, 195, y);
-
-            doc.save('珠心算练习报告.pdf');
-        }
-
         function showSummary() {
             document.getElementById('practice').style.display = 'none';
             document.getElementById('summary').style.display = 'block';
-
             const endTime = new Date();
             const timeTaken = Math.round((endTime - startTime) / 1000);
             const correctCount = problems.filter(p => p.correct).length;
@@ -561,8 +467,16 @@
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
             document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
-
+            const percentage = (correctCount / numQuestions) * 100;
+            let rating = '';
+            if (percentage >= 90) {
+                rating = '优秀，继续保持！';
+            } else if (percentage >= 70) {
+                rating = '良好，再接再厉！';
+            } else {
+                rating = '加油，下次会更好！';
+            }
+            document.getElementById('encouragement').innerText = rating;
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
             problems.forEach((problem, index) => {
