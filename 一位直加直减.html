@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（直加直减）</title>
+    <title>珠心算练习（一位直加直减）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -425,7 +425,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位五笔加减）', xCenter, y);
+            ctx.fillText('（一位直加直减）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -442,11 +442,11 @@
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
             ctx.fillText('作者：颜毅翔', xCenter, y);
+            return canvas;
         }
 
         function shareResult() {
-            drawShareCanvas();
-            const canvas = document.getElementById('shareCanvas');
+            const canvas = drawShareCanvas();
             canvas.toBlob(blob => {
                 const file = new File([blob], 'result.png', { type: 'image/png' });
                 if (navigator.share && isMobile) {
@@ -467,26 +467,23 @@
         }
 
         function generatePDF() {
-            drawShareCanvas(); // 确保canvas被绘制
+            const canvas = drawShareCanvas();
+            const imgData = canvas.toDataURL('image/png');
+            const imgProps = { width: canvas.width, height: canvas.height };
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
-            const canvas = document.getElementById('shareCanvas');
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const pdfWidth = 190; // PDF内宽度
-            const pdfHeight = (imgHeight * pdfWidth) / imgWidth; // 保持比例
-            pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight); // 保持原始比例
 
             pdf.setLineWidth(0.5);
             pdf.setDrawColor(0, 0, 0); // 黑色实线
 
             // 表格位置，从图片下方开始
-            let y = 10 + pdfHeight + 10; // 图片下方间距
+            let y = 10 + pdfImageHeight + 10; // 图片下方间距
             let startY = y;
             const baseRowHeight = 10;
             const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
-            const maxTextWidth = colWidths[0] - 5; // 留边距
             const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
 
             function drawTableHeader() {
@@ -512,9 +509,8 @@
             // 绘制表格行
             pdf.setFontSize(10);
             problems.forEach((problem) => {
-                const questionLines = pdf.splitTextToSize(problem.summaryText, maxTextWidth);
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
                 const dynamicRowHeight = baseRowHeight * questionLines.length;
-
                 // 检查是否需要分页
                 if (y + dynamicRowHeight > pageHeight) {
                     pdf.addPage();
