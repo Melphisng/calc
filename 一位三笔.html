@@ -13,7 +13,7 @@
             background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
-            touch-action: manipulation; /* 优化手机触摸 */
+            touch-action: manipulation;
         }
         .container {
             background-color: white;
@@ -27,24 +27,24 @@
         .problem {
             font-size: 24px;
             margin: 10px 0;
-            text-align: center; /* 整体居中 */
+            text-align: center;
         }
         .problem span {
             display: inline-block;
-            width: 40px; /* 固定宽度确保对齐 */
-            text-align: right; /* 右对齐数字，负号不影响 */
+            width: 40px;
+            text-align: right;
         }
         input[type="number"], input[type="text"] {
             padding: 10px;
             font-size: 18px;
             margin: 10px;
             width: 100px;
-            -webkit-appearance: none; /* 移除手机默认样式 */
-            -moz-appearance: textfield; /* 兼容 Firefox */
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
         }
         button {
-            padding: 12px 24px; /* 按钮放大 */
-            font-size: 18px; /* 按钮字体放大 */
+            padding: 12px 24px;
+            font-size: 18px;
             margin: 10px;
             cursor: pointer;
             background-color: #4CAF50;
@@ -52,16 +52,16 @@
             border: none;
             border-radius: 5px;
             touch-action: manipulation;
-            display: block; /* 电脑端按钮在输入框下方 */
+            display: block;
             margin-left: auto;
             margin-right: auto;
-            min-height: 48px; /* iOS 触摸区域规范 */
+            min-height: 48px;
         }
         button:hover {
             background-color: #45a049;
         }
         #shareButton {
-            background-color: #1a73e8; /* 分享按钮蓝色 */
+            background-color: #1a73e8;
         }
         #shareButton:hover {
             background-color: #1557b0;
@@ -86,7 +86,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-size: 14px; /* 手机上表格字体稍小 */
+            font-size: 14px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -109,26 +109,26 @@
         .keyboard button {
             padding: 15px;
             font-size: 20px;
-            background-color: #666666; /* 数字键深灰色 */
-            color: #ffffff; /* 白色字体 */
+            background-color: #666666;
+            color: #ffffff;
             border: none;
             border-radius: 5px;
-            min-height: 48px; /* iOS 触摸区域规范 */
+            min-height: 48px;
             transition: background-color 0.1s, transform 0.1s;
         }
         .keyboard button:active {
             transform: scale(0.95);
-            background-color: #555555 !important;  /* 覆盖删除键 */
+            background-color: #555555 !important;
         }
         .keyboard .zero-button {
-            grid-column: 2; /* 0 居中 */
+            grid-column: 2;
         }
         .keyboard .delete-button {
-            grid-column: 3; /* 删除键在0右边 */
-            background-color: #ff0000; /* 红色 */
+            grid-column: 3;
+            background-color: #ff0000 !important;
         }
         .keyboard .delete-button:active {
-            background-color: #cc0000; /* 激活深红色 */
+            background-color: #cc0000 !important;
         }
         #shareArea {
             background-color: white;
@@ -149,17 +149,14 @@
                 width: 80px;
             }
             button {
-                font-size: 16px; /* 手机上按钮字体稍小 */
-                padding: 10px 30px; /* 手机上按钮加长 */
+                font-size: 16px;
+                padding: 10px 30px;
             }
             #submitButton, #startButton {
-                width: 240px; /* 与三个数字键等宽 */
-            }
-            #submitButton {
-                margin-top: 5px; /* 提交按钮与键盘间距 */
+                width: 240px;
             }
             .keyboard {
-                display: grid; /* 手机上显示键盘 */
+                display: grid;
             }
             .keyboard button {
                 padding: 20px;
@@ -173,10 +170,10 @@
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>珠心算练习（一位三笔）</h1>
         <div id="setup" style="display: block;">
             <label for="numQuestions">选择题目数量：</label>
             <select id="numQuestions">
@@ -243,7 +240,6 @@
     </div>
     <canvas id="shareCanvas" style="display: none;"></canvas>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         let problems = [];
         let currentIndex = 0;
@@ -262,6 +258,30 @@
             '你真是个珠心算小能手！',
             '进步神速，继续挑战吧！'
         ];
+
+        // 直加直减允许的操作列表，排除0作为运算数
+        const directOperations = {
+            '+': {
+                1: [1, 2, 3],
+                2: [1, 2],
+                3: [1],
+                5: [1, 2, 3, 4],
+                6: [1, 2, 3],
+                7: [1, 2],
+                8: [1]
+            },
+            '-': {
+                1: [1],
+                2: [1, 2],
+                3: [1, 2, 3],
+                4: [1, 2, 3, 4],
+                5: [5],
+                6: [1, 5, 6],
+                7: [1, 2, 5, 6, 7],
+                8: [1, 2, 3, 5, 6, 7, 8],
+                9: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            }
+        };
 
         function inputKey(key) {
             const now = Date.now();
@@ -330,7 +350,7 @@
         }
 
         function startPractice() {
-            console.log('startPractice called'); // 调试日志
+            console.log('startPractice called');
             if (!userName || userName === '未知') {
                 document.getElementById('setupError').innerText = '请先在主页设置姓名！';
                 return;
@@ -398,26 +418,25 @@
             ctx.fillText('（一位三笔）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
-            ctx.font = '16px bold Arial'; // 姓名加粗
+            ctx.font = '16px bold Arial';
             ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
             y += lineHeight;
-            ctx.font = '16px Arial'; // 恢复正常字体
+            ctx.font = '16px Arial';
             ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
-            y += 2 * lineHeight; // 作者信息与上方内容增加间距
-            // 作者：居中，浅色字体
+            y += 2 * lineHeight;
             ctx.font = '14px Arial';
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
             ctx.fillText('作者：颜毅翔', xCenter, y);
+            return canvas;
         }
 
         function shareResult() {
-            drawShareCanvas();
-            const canvas = document.getElementById('shareCanvas');
+            const canvas = drawShareCanvas();
             canvas.toBlob(blob => {
                 const file = new File([blob], 'result.png', { type: 'image/png' });
                 if (navigator.share && isMobile) {
@@ -438,21 +457,22 @@
         }
 
         function generatePDF() {
-            drawShareCanvas(); // 确保canvas被绘制
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-            const canvas = document.getElementById('shareCanvas');
+            const canvas = drawShareCanvas();
             const imgData = canvas.toDataURL('image/png');
             const imgProps = { width: canvas.width, height: canvas.height };
-            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight);
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight); // 保持原始比例
 
             pdf.setLineWidth(0.5);
             pdf.setDrawColor(0, 0, 0); // 黑色实线
 
             // 表格位置，从图片下方开始
             let y = 10 + pdfImageHeight + 10; // 图片下方间距
-            const baseRowHeight = 10;
+            let startY = y;
+            const rowHeight = 10;
             const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
             const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
 
@@ -463,15 +483,15 @@
                 pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
                 pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
                 pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
-                y += baseRowHeight;
-                pdf.line(10, y - baseRowHeight, 200, y - baseRowHeight); // 顶线
+                y += rowHeight;
+                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
                 pdf.line(10, y, 200, y); // 底线
                 let x = 10;
                 colWidths.forEach(width => {
-                    pdf.line(x, y - baseRowHeight, x, y);
+                    pdf.line(x, y - rowHeight, x, y);
                     x += width;
                 });
-                pdf.line(x, y - baseRowHeight, x, y); // 右边线
+                pdf.line(x, y - rowHeight, x, y); // 右边线
             }
 
             drawTableHeader();
@@ -479,17 +499,16 @@
             // 绘制表格行
             pdf.setFontSize(10);
             problems.forEach((problem) => {
-                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距，自动换行
-                const dynamicRowHeight = baseRowHeight * questionLines.length;
-
                 // 检查是否需要分页
-                if (y + dynamicRowHeight > pageHeight) {
+                if (y + rowHeight > pageHeight) {
                     pdf.addPage();
                     y = 10;
                     drawTableHeader(); // 新页重绘表头
                 }
 
                 pdf.setTextColor(0, 0, 0);
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
+                let dynamicRowHeight = rowHeight * questionLines.length;
                 let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2); // 居中
                 questionLines.forEach(line => {
                     pdf.text(line, 10 + colWidths[0] / 2, lineY, { align: 'center' });
@@ -501,18 +520,18 @@
                 } else {
                     pdf.setTextColor(255, 0, 0); // 红色
                 }
-                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
 
                 if (problem.correct) {
                     pdf.setTextColor(0, 128, 128); // 深青色
-                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
                 } else {
                     pdf.setTextColor(255, 0, 0); // 红色
-                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
                 }
 
                 pdf.setTextColor(0, 0, 0); // 黑色
-                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
 
                 // 绘制行线
                 pdf.line(10, y, 200, y); // 顶线 (前一行底线)
@@ -562,30 +581,25 @@
 
         window.onload = () => {
             document.getElementById('setup').style.display = 'block';
-            // 检测设备并设置键盘显示
             const answerInput = document.getElementById('answer');
             if (isMobile) {
-                answerInput.readOnly = true;  // 阻止系统键盘
-                document.getElementById('keyboard').style.display = 'grid';  // 确保显示
-                // 点击输入框时，焦点不弹出键盘（readonly已处理）
+                answerInput.readOnly = true;
+                document.getElementById('keyboard').style.display = 'grid';
                 answerInput.addEventListener('focus', () => {
-                    answerInput.blur();  // 可选：防止焦点停留，但允许显示光标
+                    answerInput.blur();
                 });
             } else {
                 document.getElementById('keyboard').style.display = 'none';
             }
-            // 添加 Enter 键提交
-            document.getElementById('answer').addEventListener('keydown', (event) => {
+            answerInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
-                    console.log('Enter key pressed'); // 调试日志
                     checkAnswer();
                 }
             });
-            // 统一绑定虚拟键盘事件
             const buttons = document.querySelectorAll('.keyboard button');
             buttons.forEach(button => {
                 const key = button.dataset.key;
-                button.addEventListener('click', () => inputKey(key));  // 电脑点击
+                button.addEventListener('click', () => inputKey(key));
                 if (isMobile) {
                     button.addEventListener('touchstart', (event) => {
                         event.preventDefault();

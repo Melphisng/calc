@@ -174,11 +174,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 id="mainTitle">珠心算练习<br>（直加直减）</h1>
         <div id="setup" style="display: block;">
-            <label for="userName">姓名：</label>
-            <input type="text" id="userName" placeholder="请输入姓名">
-            <br>
             <label for="numQuestions">选择题目数量：</label>
             <select id="numQuestions">
                 <option value="10">10</option>
@@ -355,7 +351,6 @@
         }
 
         function startPractice() {
-            console.log('startPractice called');
             if (!userName || userName === '未知') {
                 document.getElementById('setupError').innerText = '请先在主页设置姓名！';
                 return;
@@ -417,7 +412,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位三笔）', xCenter, y);
+            ctx.fillText('（直加直减）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -462,7 +457,7 @@
             const canvas = drawShareCanvas();
             const imgData = canvas.toDataURL('image/png');
             const imgProps = { width: canvas.width, height: canvas.height };
-            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
 
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
@@ -473,6 +468,7 @@
 
             // 表格位置，从图片下方开始
             let y = 10 + pdfImageHeight + 10; // 图片下方间距
+            let startY = y;
             const rowHeight = 10;
             const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
             const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
@@ -508,7 +504,6 @@
                 }
 
                 pdf.setTextColor(0, 0, 0);
-                // 对于长文本，使用splitTextToSize换行
                 const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
                 let dynamicRowHeight = rowHeight * questionLines.length;
                 let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2); // 居中
@@ -539,7 +534,7 @@
                 pdf.line(10, y, 200, y); // 顶线 (前一行底线)
                 y += dynamicRowHeight;
                 pdf.line(10, y, 200, y); // 底线
-                x = 10;
+                let x = 10;
                 colWidths.forEach(width => {
                     pdf.line(x, y - dynamicRowHeight, x, y);
                     x += width;

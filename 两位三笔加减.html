@@ -67,6 +67,12 @@
         #shareButton:hover {
             background-color: #1557b0;
         }
+        #pdfButton {
+            background-color: #FF5722;
+        }
+        #pdfButton:hover {
+            background-color: #E64A19;
+        }
         #result, #setupError {
             font-size: 18px;
             margin-top: 10px;
@@ -169,6 +175,7 @@
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -216,6 +223,7 @@
             </div>
             <p id="encouragement"></p>
             <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
+            <button id="pdfButton" type="button" onclick="generatePDF()" ontouchstart="">生成PDF报告</button>
             <button type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
             <h3>题目分析</h3>
             <table>
@@ -255,6 +263,32 @@
             '你真是个珠心算小能手！',
             '进步神速，继续挑战吧！'
         ];
+
+        // 直加直减允许的操作列表（单列，应用于十位和个位）
+        const directOperations = {
+            '+': {
+                0: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                1: [1, 2, 3, 4, 5, 6, 7, 8],
+                2: [1, 2, 3, 4, 5, 6, 7],
+                3: [1, 2, 3, 4, 5, 6],
+                4: [1, 2, 3, 4, 5],
+                5: [1, 2, 3, 4],
+                6: [1, 2, 3],
+                7: [1, 2],
+                8: [1]
+            },
+            '-': {
+                1: [1],
+                2: [1, 2],
+                3: [1, 2, 3],
+                4: [1, 2, 3, 4],
+                5: [1, 2, 3, 4, 5],
+                6: [1, 2, 3, 4, 5, 6],
+                7: [1, 2, 3, 4, 5, 6, 7],
+                8: [1, 2, 3, 4, 5, 6, 7, 8],
+                9: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            }
+        };
 
         function inputKey(key) {
             const now = Date.now();
@@ -396,7 +430,7 @@
             showProblem();
         }
 
-        function shareResult() {
+        function drawShareCanvas() {
             const shareArea = document.getElementById('shareArea');
             const canvas = document.getElementById('shareCanvas');
             const ctx = canvas.getContext('2d');
@@ -432,6 +466,11 @@
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
             ctx.fillText('作者：颜毅翔', xCenter, y);
+            return canvas;
+        }
+
+        function shareResult() {
+            const canvas = drawShareCanvas();
             canvas.toBlob(blob => {
                 const file = new File([blob], 'result.png', { type: 'image/png' });
                 if (navigator.share && isMobile) {
@@ -449,6 +488,98 @@
                     URL.revokeObjectURL(url);
                 }
             });
+        }
+
+        function generatePDF() {
+            const canvas = drawShareCanvas();
+            const imgData = canvas.toDataURL('image/png');
+            const imgProps = { width: canvas.width, height: canvas.height };
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight); // 保持原始比例
+
+            pdf.setLineWidth(0.5);
+            pdf.setDrawColor(0, 0, 0); // 黑色实线
+
+            // 表格位置，从图片下方开始
+            let y = 10 + pdfImageHeight + 10; // 图片下方间距
+            let startY = y;
+            const rowHeight = 10;
+            const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
+            const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
+
+            function drawTableHeader() {
+                pdf.setFontSize(12);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('QUESTION', 10 + colWidths[0] / 2, y + 7, { align: 'center' });
+                pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
+                pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
+                pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
+                y += rowHeight;
+                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
+                pdf.line(10, y, 200, y); // 底线
+                let x = 10;
+                colWidths.forEach(width => {
+                    pdf.line(x, y - rowHeight, x, y);
+                    x += width;
+                });
+                pdf.line(x, y - rowHeight, x, y); // 右边线
+            }
+
+            drawTableHeader();
+
+            // 绘制表格行
+            pdf.setFontSize(10);
+            problems.forEach((problem) => {
+                // 检查是否需要分页
+                if (y + rowHeight > pageHeight) {
+                    pdf.addPage();
+                    y = 10;
+                    drawTableHeader(); // 新页重绘表头
+                }
+
+                pdf.setTextColor(0, 0, 0);
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
+                let dynamicRowHeight = rowHeight * questionLines.length;
+                let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2); // 居中
+                questionLines.forEach(line => {
+                    pdf.text(line, 10 + colWidths[0] / 2, lineY, { align: 'center' });
+                    lineY += 5;
+                });
+
+                if (problem.correct) {
+                    pdf.setTextColor(0, 128, 128); // 深青色
+                } else {
+                    pdf.setTextColor(255, 0, 0); // 红色
+                }
+                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+
+                if (problem.correct) {
+                    pdf.setTextColor(0, 128, 128); // 深青色
+                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                } else {
+                    pdf.setTextColor(255, 0, 0); // 红色
+                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                }
+
+                pdf.setTextColor(0, 0, 0); // 黑色
+                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+
+                // 绘制行线
+                pdf.line(10, y, 200, y); // 顶线 (前一行底线)
+                y += dynamicRowHeight;
+                pdf.line(10, y, 200, y); // 底线
+                let x = 10;
+                colWidths.forEach(width => {
+                    pdf.line(x, y - dynamicRowHeight, x, y);
+                    x += width;
+                });
+                pdf.line(x, y - dynamicRowHeight, x, y); // 右边线
+            });
+
+            pdf.save('report.pdf');
         }
 
         function showSummary() {

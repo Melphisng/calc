@@ -294,45 +294,15 @@
         }
 
         function generateProblem() {
-            let num1, num2, num3, op1, op2, result;
-            do {
-                num1 = Math.floor(Math.random() * 9) + 1; // 1-9
-                num2 = Math.floor(Math.random() * 9) + 1;
-                num3 = Math.floor(Math.random() * 9) + 1;
-                op1 = Math.random() > 0.5 ? '+' : '-';
-                op2 = Math.random() > 0.5 ? '+' : '-';
-
-                // 计算中间结果，检查负数和两位数
-                let temp = op1 === '+' ? num1 + num2 : num1 - num2;
-                result = op2 === '+' ? temp + num3 : temp - num3;
-            } while (
-                num1 === 0 || num2 === 0 || num3 === 0 || // 避免0
-                result < 0 || result > 9 || // 结果必须是1-9
-                (op1 === '-' && num1 < num2) || // 第一步避免负数
-                (op2 === '-' && (op1 === '+' ? num1 + num2 : num1 - num2) < num3) || // 第二步避免负数
-                (op1 === '+' && num1 + num2 > 9) || // 第一步避免两位数
-                (op2 === '+' && (op1 === '+' ? num1 + num2 : num1 - num2) + num3 > 9) // 第二步避免两位数
-            );
-
-            // 练习时题目：加法无符号，减法带负号，数字用 span 包装
-            const practiceText = [
-                `<span>${num1}</span>`,
-                `<span>${op1 === '+' ? num2 : `-${num2}`}</span>`,
-                `<span>${op2 === '+' ? num3 : `-${num3}`}</span>`
-            ].join('<br>');
-
-            // 结果表格题目：显示加号和减号
-            const summaryText = [
-                num1,
-                op1 + num2,
-                op2 + num3
-            ].join(' ');
-
+            const num1 = Math.floor(Math.random() * 9) + 1; // 1-9
+            const num2 = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = num1 * num2;
+            const practiceText = `<span>${num1} × ${num2} =</span>`;
+            const summaryText = `${num1} × ${num2}`;
             return { practiceText, summaryText, answer: result };
         }
 
         function startPractice() {
-            console.log('startPractice called'); // 调试日志
             if (!userName || userName === '未知') {
                 document.getElementById('setupError').innerText = '请先在主页设置姓名！';
                 return;
@@ -365,15 +335,12 @@
         function checkAnswer() {
             const userAnswer = parseInt(document.getElementById('answer').value);
             const correctAnswer = parseInt(document.getElementById('problem').dataset.answer);
-
             if (isNaN(userAnswer)) {
                 document.getElementById('result').innerText = '请输入答案！';
                 return;
             }
-
             problems[currentIndex].userAnswer = userAnswer;
             problems[currentIndex].correct = userAnswer === correctAnswer;
-
             currentIndex++;
             showProblem();
         }
@@ -397,29 +364,28 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位三笔）', xCenter, y);
+            ctx.fillText('（一位乘法）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
-            ctx.font = '16px bold Arial'; // 姓名加粗
+            ctx.font = '16px bold Arial';
             ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
             y += lineHeight;
-            ctx.font = '16px Arial'; // 恢复正常字体
+            ctx.font = '16px Arial';
             ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
-            y += 2 * lineHeight; // 作者信息与上方内容增加间距
-            // 作者：居中，浅色字体
+            y += 2 * lineHeight;
             ctx.font = '14px Arial';
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
             ctx.fillText('作者：颜毅翔', xCenter, y);
+            return canvas;
         }
 
         function shareResult() {
-            drawShareCanvas();
-            const canvas = document.getElementById('shareCanvas');
+            const canvas = drawShareCanvas();
             canvas.toBlob(blob => {
                 const file = new File([blob], 'result.png', { type: 'image/png' });
                 if (navigator.share && isMobile) {
@@ -440,21 +406,22 @@
         }
 
         function generatePDF() {
-            drawShareCanvas(); // 确保canvas被绘制
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-            const canvas = document.getElementById('shareCanvas');
+            const canvas = drawShareCanvas();
             const imgData = canvas.toDataURL('image/png');
             const imgProps = { width: canvas.width, height: canvas.height };
-            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight);
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight); // 保持原始比例
 
             pdf.setLineWidth(0.5);
             pdf.setDrawColor(0, 0, 0); // 黑色实线
 
             // 表格位置，从图片下方开始
             let y = 10 + pdfImageHeight + 10; // 图片下方间距
-            const baseRowHeight = 10;
+            let startY = y;
+            const rowHeight = 10;
             const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
             const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
 
@@ -465,15 +432,15 @@
                 pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
                 pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
                 pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
-                y += baseRowHeight;
-                pdf.line(10, y - baseRowHeight, 200, y - baseRowHeight); // 顶线
+                y += rowHeight;
+                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
                 pdf.line(10, y, 200, y); // 底线
                 let x = 10;
                 colWidths.forEach(width => {
-                    pdf.line(x, y - baseRowHeight, x, y);
+                    pdf.line(x, y - rowHeight, x, y);
                     x += width;
                 });
-                pdf.line(x, y - baseRowHeight, x, y); // 右边线
+                pdf.line(x, y - rowHeight, x, y); // 右边线
             }
 
             drawTableHeader();
@@ -481,17 +448,16 @@
             // 绘制表格行
             pdf.setFontSize(10);
             problems.forEach((problem) => {
-                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距，自动换行
-                const dynamicRowHeight = baseRowHeight * questionLines.length;
-
                 // 检查是否需要分页
-                if (y + dynamicRowHeight > pageHeight) {
+                if (y + rowHeight > pageHeight) {
                     pdf.addPage();
                     y = 10;
                     drawTableHeader(); // 新页重绘表头
                 }
 
                 pdf.setTextColor(0, 0, 0);
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
+                let dynamicRowHeight = rowHeight * questionLines.length;
                 let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2); // 居中
                 questionLines.forEach(line => {
                     pdf.text(line, 10 + colWidths[0] / 2, lineY, { align: 'center' });
@@ -503,18 +469,18 @@
                 } else {
                     pdf.setTextColor(255, 0, 0); // 红色
                 }
-                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
 
                 if (problem.correct) {
                     pdf.setTextColor(0, 128, 128); // 深青色
-                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
                 } else {
                     pdf.setTextColor(255, 0, 0); // 红色
-                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
                 }
 
                 pdf.setTextColor(0, 0, 0); // 黑色
-                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
+                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
 
                 // 绘制行线
                 pdf.line(10, y, 200, y); // 顶线 (前一行底线)
@@ -564,30 +530,25 @@
 
         window.onload = () => {
             document.getElementById('setup').style.display = 'block';
-            // 检测设备并设置键盘显示
             const answerInput = document.getElementById('answer');
             if (isMobile) {
-                answerInput.readOnly = true;  // 阻止系统键盘
-                document.getElementById('keyboard').style.display = 'grid';  // 确保显示
-                // 点击输入框时，焦点不弹出键盘（readonly已处理）
+                answerInput.readOnly = true;
+                document.getElementById('keyboard').style.display = 'grid';
                 answerInput.addEventListener('focus', () => {
-                    answerInput.blur();  // 可选：防止焦点停留，但允许显示光标
+                    answerInput.blur();
                 });
             } else {
                 document.getElementById('keyboard').style.display = 'none';
             }
-            // 添加 Enter 键提交
-            document.getElementById('answer').addEventListener('keydown', (event) => {
+            answerInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
-                    console.log('Enter key pressed'); // 调试日志
                     checkAnswer();
                 }
             });
-            // 统一绑定虚拟键盘事件
             const buttons = document.querySelectorAll('.keyboard button');
             buttons.forEach(button => {
                 const key = button.dataset.key;
-                button.addEventListener('click', () => inputKey(key));  // 电脑点击
+                button.addEventListener('click', () => inputKey(key));
                 if (isMobile) {
                     button.addEventListener('touchstart', (event) => {
                         event.preventDefault();
