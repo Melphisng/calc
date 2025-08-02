@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（一位直加直减）</title>
+    <title>珠心算练习（直加直减）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -174,7 +174,11 @@
 </head>
 <body>
     <div class="container">
+        <h1 id="mainTitle">珠心算练习<br>（直加直减）</h1>
         <div id="setup" style="display: block;">
+            <label for="userName">姓名：</label>
+            <input type="text" id="userName" placeholder="请输入姓名">
+            <br>
             <label for="numQuestions">选择题目数量：</label>
             <select id="numQuestions">
                 <option value="10">10</option>
@@ -315,28 +319,21 @@
             let nums = [];
             let ops = [''];
             let temp, result;
-            let numberCount = {}; // 跟踪每个数字出现次数
 
             // 随机选择第一个数字（1-9，排除0）
             nums.push(Math.floor(Math.random() * 9) + 1);
-            numberCount[nums[0]] = (numberCount[nums[0]] || 0) + 1;
+
             temp = nums[0];
 
-            for (let i = 1; i < 5; i++) { // 5 numbers, 4 operations
+            for (let i = 1; i < 3; i++) { // 3 numbers, 2 operations
                 let op = Math.random() > 0.5 ? '+' : '-';
                 let possibleNums = directOperations[op][temp];
                 if (!possibleNums || possibleNums.length === 0) {
                     return generateProblem(); // 递归重试
                 }
-                // 过滤掉出现次数超过2的数字
-                possibleNums = possibleNums.filter(num => (numberCount[num] || 0) < 2);
-                if (possibleNums.length === 0) {
-                    return generateProblem(); // 递归重试
-                }
                 let num = possibleNums[Math.floor(Math.random() * possibleNums.length)];
-                numberCount[num] = (numberCount[num] || 0) + 1;
                 let newTemp = op === '+' ? temp + num : temp - num;
-                if (newTemp < 0 || newTemp > 99) { // 允许两位数中间结果
+                if (newTemp < 0 || newTemp > 9) {
                     return generateProblem(); // 递归重试
                 }
                 temp = newTemp;
@@ -344,11 +341,6 @@
                 ops.push(op);
             }
             result = temp;
-
-            // 确保最终结果是一位数
-            if (result < 0 || result > 9) {
-                return generateProblem();
-            }
 
             const practiceArr = nums.map((num, i) => {
                 let sign = ops[i] === '-' ? '-' : (i === 0 ? '' : '');
@@ -425,7 +417,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（一位直加直减）', xCenter, y);
+            ctx.fillText('（一位三笔）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -470,7 +462,7 @@
             const canvas = drawShareCanvas();
             const imgData = canvas.toDataURL('image/png');
             const imgProps = { width: canvas.width, height: canvas.height };
-            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例
 
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
@@ -481,8 +473,7 @@
 
             // 表格位置，从图片下方开始
             let y = 10 + pdfImageHeight + 10; // 图片下方间距
-            let startY = y;
-            const baseRowHeight = 10;
+            const rowHeight = 10;
             const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
             const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
 
@@ -493,15 +484,15 @@
                 pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
                 pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
                 pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
-                y += baseRowHeight;
-                pdf.line(10, y - baseRowHeight, 200, y - baseRowHeight); // 顶线
+                y += rowHeight;
+                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
                 pdf.line(10, y, 200, y); // 底线
                 let x = 10;
                 colWidths.forEach(width => {
-                    pdf.line(x, y - baseRowHeight, x, y);
+                    pdf.line(x, y - rowHeight, x, y);
                     x += width;
                 });
-                pdf.line(x, y - baseRowHeight, x, y); // 右边线
+                pdf.line(x, y - rowHeight, x, y); // 右边线
             }
 
             drawTableHeader();
@@ -509,16 +500,17 @@
             // 绘制表格行
             pdf.setFontSize(10);
             problems.forEach((problem) => {
-                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
-                const dynamicRowHeight = baseRowHeight * questionLines.length;
                 // 检查是否需要分页
-                if (y + dynamicRowHeight > pageHeight) {
+                if (y + rowHeight > pageHeight) {
                     pdf.addPage();
                     y = 10;
                     drawTableHeader(); // 新页重绘表头
                 }
 
                 pdf.setTextColor(0, 0, 0);
+                // 对于长文本，使用splitTextToSize换行
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
+                let dynamicRowHeight = rowHeight * questionLines.length;
                 let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2); // 居中
                 questionLines.forEach(line => {
                     pdf.text(line, 10 + colWidths[0] / 2, lineY, { align: 'center' });
@@ -547,7 +539,7 @@
                 pdf.line(10, y, 200, y); // 顶线 (前一行底线)
                 y += dynamicRowHeight;
                 pdf.line(10, y, 200, y); // 底线
-                let x = 10;
+                x = 10;
                 colWidths.forEach(width => {
                     pdf.line(x, y - dynamicRowHeight, x, y);
                     x += width;
