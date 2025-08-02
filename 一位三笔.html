@@ -66,6 +66,12 @@
         #shareButton:hover {
             background-color: #1557b0;
         }
+        #pdfButton {
+            background-color: #FF5722;
+        }
+        #pdfButton:hover {
+            background-color: #E64A19;
+        }
         #submitButton, #startButton {
             /* 确保按钮样式一致 */
         }
@@ -217,6 +223,7 @@
             </div>
             <p id="encouragement"></p>
             <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
+            <button id="pdfButton" type="button" onclick="generatePDF()" ontouchstart="">生成PDF报告</button>
             <button type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
             <h3>题目分析</h3>
             <table>
@@ -256,30 +263,6 @@
             '你真是个珠心算小能手！',
             '进步神速，继续挑战吧！'
         ];
-
-        // 直加直减允许的操作列表，排除0作为运算数
-        const directOperations = {
-            '+': {
-                1: [1, 2, 3],
-                2: [1, 2],
-                3: [1],
-                5: [1, 2, 3, 4],
-                6: [1, 2, 3],
-                7: [1, 2],
-                8: [1]
-            },
-            '-': {
-                1: [1],
-                2: [1, 2],
-                3: [1, 2, 3],
-                4: [1, 2, 3, 4],
-                5: [5],
-                6: [1, 5, 6],
-                7: [1, 2, 5, 6, 7],
-                8: [1, 2, 3, 5, 6, 7, 8],
-                9: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-            }
-        };
 
         function inputKey(key) {
             const now = Date.now();
@@ -394,27 +377,19 @@
             showProblem();
         }
 
-        function shareResult() {
+        function drawShareCanvas() {
             const shareArea = document.getElementById('shareArea');
             const canvas = document.getElementById('shareCanvas');
             const ctx = canvas.getContext('2d');
-
-            // 设置画布尺寸，增加高度以容纳标题和作者信息
             const width = shareArea.offsetWidth;
-            const height = shareArea.offsetHeight + 90; // 额外空间给标题和作者
+            const height = shareArea.offsetHeight + 90;
             canvas.width = width;
             canvas.height = height;
-
-            // 绘制背景
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, width, height);
-
-            // 绘制文本
-            const xLeft = 20; // 靠左对齐的 x 坐标
+            const xLeft = 20;
             let y = 30;
             const lineHeight = 30;
-
-            // 标题：居中，加大加粗
             ctx.font = '20px bold Arial';
             ctx.fillStyle = 'black';
             ctx.textAlign = 'center';
@@ -423,26 +398,26 @@
             y += lineHeight;
             ctx.fillText('（一位三笔）', xCenter, y);
             y += lineHeight;
-
-            // 其他信息：靠左对齐
             ctx.textAlign = 'left';
-            ctx.font = '16px bold Arial'; // 姓名加粗
+            ctx.font = '16px bold Arial';
             ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
             y += lineHeight;
-            ctx.font = '16px Arial'; // 恢复正常字体
+            ctx.font = '16px Arial';
             ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
-            y += 2 * lineHeight; // 作者信息与上方内容增加间距
-            // 作者：居中，浅色字体
+            y += 2 * lineHeight;
             ctx.font = '14px Arial';
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
             ctx.fillText('作者：颜毅翔', xCenter, y);
+        }
 
-            // 转换为图片
+        function shareResult() {
+            drawShareCanvas();
+            const canvas = document.getElementById('shareCanvas');
             canvas.toBlob(blob => {
                 const file = new File([blob], 'result.png', { type: 'image/png' });
                 if (navigator.share && isMobile) {
@@ -462,6 +437,97 @@
             });
         }
 
+        function generatePDF() {
+            drawShareCanvas(); // 确保canvas被绘制
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const canvas = document.getElementById('shareCanvas');
+            const imgData = canvas.toDataURL('image/png');
+            const imgProps = { width: canvas.width, height: canvas.height };
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight);
+
+            pdf.setLineWidth(0.5);
+            pdf.setDrawColor(0, 0, 0); // 黑色实线
+
+            // 表格位置，从图片下方开始
+            let y = 10 + pdfImageHeight + 10; // 图片下方间距
+            const baseRowHeight = 10;
+            const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
+            const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
+
+            function drawTableHeader() {
+                pdf.setFontSize(12);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('QUESTION', 10 + colWidths[0] / 2, y + 7, { align: 'center' });
+                pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
+                pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
+                pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
+                y += baseRowHeight;
+                pdf.line(10, y - baseRowHeight, 200, y - baseRowHeight); // 顶线
+                pdf.line(10, y, 200, y); // 底线
+                let x = 10;
+                colWidths.forEach(width => {
+                    pdf.line(x, y - baseRowHeight, x, y);
+                    x += width;
+                });
+                pdf.line(x, y - baseRowHeight, x, y); // 右边线
+            }
+
+            drawTableHeader();
+
+            // 绘制表格行
+            pdf.setFontSize(10);
+            problems.forEach((problem) => {
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
+                const dynamicRowHeight = baseRowHeight * questionLines.length;
+                // 检查是否需要分页
+                if (y + dynamicRowHeight > pageHeight) {
+                    pdf.addPage();
+                    y = 10;
+                    drawTableHeader(); // 新页重绘表头
+                }
+
+                pdf.setTextColor(0, 0, 0);
+                let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2); // 居中
+                questionLines.forEach(line => {
+                    pdf.text(line, 10 + colWidths[0] / 2, lineY, { align: 'center' });
+                    lineY += 5;
+                });
+
+                if (problem.correct) {
+                    pdf.setTextColor(0, 128, 128); // 深青色
+                } else {
+                    pdf.setTextColor(255, 0, 0); // 红色
+                }
+                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+
+                if (problem.correct) {
+                    pdf.setTextColor(0, 128, 128); // 深青色
+                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                } else {
+                    pdf.setTextColor(255, 0, 0); // 红色
+                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                }
+
+                pdf.setTextColor(0, 0, 0); // 黑色
+                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+
+                // 绘制行线
+                pdf.line(10, y, 200, y); // 顶线 (前一行底线)
+                y += dynamicRowHeight;
+                pdf.line(10, y, 200, y); // 底线
+                let x = 10;
+                colWidths.forEach(width => {
+                    pdf.line(x, y - dynamicRowHeight, x, y);
+                    x += width;
+                });
+                pdf.line(x, y - dynamicRowHeight, x, y); // 右边线
+            });
+
+            pdf.save('report.pdf');
+        }
+
         function showSummary() {
             document.getElementById('practice').style.display = 'none';
             document.getElementById('summary').style.display = 'block';
@@ -473,16 +539,7 @@
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
             document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            const percentage = (correctCount / numQuestions) * 100;
-            let rating = '';
-            if (percentage >= 90) {
-                rating = '优秀，继续保持！';
-            } else if (percentage >= 70) {
-                rating = '良好，再接再厉！';
-            } else {
-                rating = '加油，下次会更好！';
-            }
-            document.getElementById('encouragement').innerText = rating;
+            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
 
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
