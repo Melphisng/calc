@@ -72,9 +72,6 @@
         #pdfButton:hover {
             background-color: #E64A19;
         }
-        #submitButton, #startButton {
-            /* 确保按钮样式一致 */
-        }
         #result, #setupError {
             font-size: 18px;
             margin-top: 10px;
@@ -179,6 +176,7 @@
 </head>
 <body>
     <div class="container">
+        <h1>珠心算练习（一位三笔）</h1>
         <div id="setup" style="display: block;">
             <label for="numQuestions">选择题目数量：</label>
             <select id="numQuestions">
@@ -245,6 +243,7 @@
     </div>
     <canvas id="shareCanvas" style="display: none;"></canvas>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         let problems = [];
         let currentIndex = 0;
@@ -399,16 +398,17 @@
             ctx.fillText('（一位三笔）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
-            ctx.font = '16px bold Arial';
+            ctx.font = '16px bold Arial'; // 姓名加粗
             ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
             y += lineHeight;
-            ctx.font = '16px Arial';
+            ctx.font = '16px Arial'; // 恢复正常字体
             ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
-            y += 2 * lineHeight;
+            y += 2 * lineHeight; // 作者信息与上方内容增加间距
+            // 作者：居中，浅色字体
             ctx.font = '14px Arial';
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
@@ -479,8 +479,9 @@
             // 绘制表格行
             pdf.setFontSize(10);
             problems.forEach((problem) => {
-                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距，自动换行
                 const dynamicRowHeight = baseRowHeight * questionLines.length;
+
                 // 检查是否需要分页
                 if (y + dynamicRowHeight > pageHeight) {
                     pdf.addPage();
@@ -500,18 +501,18 @@
                 } else {
                     pdf.setTextColor(255, 0, 0); // 红色
                 }
-                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
 
                 if (problem.correct) {
                     pdf.setTextColor(0, 128, 128); // 深青色
-                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
                 } else {
                     pdf.setTextColor(255, 0, 0); // 红色
-                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
                 }
 
                 pdf.setTextColor(0, 0, 0); // 黑色
-                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
+                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2), { align: 'center' });
 
                 // 绘制行线
                 pdf.line(10, y, 200, y); // 顶线 (前一行底线)
