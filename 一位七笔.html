@@ -221,6 +221,10 @@
                 padding: 20px;
                 font-size: 24px;
             }
+            .keyboard .delete-button {
+                padding: 15px;
+                font-size: 20px;
+            }
             #encouragement {
                 font-size: 16px;
             }
@@ -269,7 +273,7 @@
                 <button data-key="2">2</button>
                 <button data-key="3">3</button>
                 <button class="zero-button" data-key="0">0</button>
-                <button class="delete-button" data-key="delete">删除 / Delete</button>
+                <button class="delete-button" data-key="delete">⌫</button>
             </div>
             <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="">提交 / Submit</button>
             <div id="result"></div>
@@ -594,7 +598,7 @@
             const canvas = document.getElementById('shareCanvas');
             const ctx = canvas.getContext('2d');
             const width = shareArea.offsetWidth;
-            const height = shareArea.offsetHeight + 90;
+            const height = shareArea.offsetHeight + (language === 'en' ? 120 : 90);
             canvas.width = width;
             canvas.height = height;
             ctx.fillStyle = 'white';
@@ -608,7 +612,13 @@
             const xCenter = width / 2;
             ctx.fillText(translations[language].reportTitle, xCenter, y);
             y += lineHeight;
-            ctx.fillText(translations[language].reportSubtitle, xCenter, y);
+            if (language === 'en') {
+                ctx.fillText('(One-Digit Seven-Step', xCenter, y);
+                y += lineHeight;
+                ctx.fillText('Addition/Subtraction)', xCenter, y);
+            } else {
+                ctx.fillText(translations[language].reportSubtitle, xCenter, y);
+            }
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
@@ -653,21 +663,20 @@
             const canvas = drawShareCanvas();
             const imgData = canvas.toDataURL('image/png');
             const imgProps = { width: canvas.width, height: canvas.height };
-            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width;
 
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight); // 保持原始比例
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight);
 
             pdf.setLineWidth(0.5);
-            pdf.setDrawColor(0, 0, 0); // 黑色实线
-            pdf.setFont('helvetica', 'normal'); // Explicitly set Helvetica font
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setFont('helvetica', 'normal');
 
-            // 表格位置，从图片下方开始
-            let y = 10 + pdfImageHeight + 10; // 图片下方间距
+            let y = 10 + pdfImageHeight + 10;
             const rowHeight = 10;
-            const colWidths = [80, 40, 40, 30]; // Adjusted: wider first column, total 190mm
-            const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
+            const colWidths = [80, 40, 40, 30];
+            const pageHeight = pdf.internal.pageSize.height - 20;
 
             function drawTableHeader() {
                 pdf.setFontSize(12);
@@ -677,62 +686,58 @@
                 pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
                 pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
                 y += rowHeight;
-                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
-                pdf.line(10, y, 200, y); // 底线
+                pdf.line(10, y - rowHeight, 200, y - rowHeight);
+                pdf.line(10, y, 200, y);
                 let x = 10;
                 colWidths.forEach(width => {
                     pdf.line(x, y - rowHeight, x, y);
                     x += width;
                 });
-                pdf.line(x, y - rowHeight, x, y); // 右边线
+                pdf.line(x, y - rowHeight, x, y);
             }
 
             drawTableHeader();
 
-            // 绘制表格行
             problems.forEach((problem) => {
-                // 检查是否需要分页
                 if (y + rowHeight > pageHeight) {
                     pdf.addPage();
                     y = 10;
-                    drawTableHeader(); // 新页重绘表头
+                    drawTableHeader();
                 }
 
-                pdf.setFontSize(10); // Ensure font size is 10 for all rows
+                pdf.setFontSize(10);
                 pdf.setTextColor(0, 0, 0);
-                // Render problem text in a single line, truncating if necessary
-                const maxWidth = colWidths[0] - 5; // 75mm
-                const questionText = pdf.splitTextToSize(problem.summaryText, maxWidth, { fontSize: 10 })[0]; // Take first line only
+                const maxWidth = colWidths[0] - 5;
+                const questionText = pdf.splitTextToSize(problem.summaryText, maxWidth, { fontSize: 10 })[0];
                 pdf.text(questionText, 10 + colWidths[0] / 2, y + 7, { align: 'center', maxWidth: maxWidth });
 
                 if (problem.correct) {
-                    pdf.setTextColor(0, 128, 128); // 深青色
+                    pdf.setTextColor(0, 128, 128);
                 } else {
-                    pdf.setTextColor(255, 0, 0); // 红色
+                    pdf.setTextColor(255, 0, 0);
                 }
                 pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
 
                 if (problem.correct) {
-                    pdf.setTextColor(0, 128, 128); // 深青色
+                    pdf.setTextColor(0, 128, 128);
                     pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
                 } else {
-                    pdf.setTextColor(255, 0, 0); // 红色
+                    pdf.setTextColor(255, 0, 0);
                     pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
                 }
 
-                pdf.setTextColor(0, 0, 0); // 黑色
+                pdf.setTextColor(0, 0, 0);
                 pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
 
-                // 绘制行线
-                pdf.line(10, y, 200, y); // 顶线 (前一行底线)
+                pdf.line(10, y, 200, y);
                 y += rowHeight;
-                pdf.line(10, y, 200, y); // 底线
+                pdf.line(10, y, 200, y);
                 let x = 10;
                 colWidths.forEach(width => {
                     pdf.line(x, y - rowHeight, x, y);
                     x += width;
                 });
-                pdf.line(x, y - rowHeight, x, y); // 右边线
+                pdf.line(x, y - rowHeight, x, y);
             });
 
             pdf.save('report.pdf');
