@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加减法练习</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 24px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            touch-action: manipulation;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .menu-button {
+            display: block;
+            margin: 10px auto;
+            width: 200px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 20px;
+            }
+            p {
+                font-size: 16px;
+            }
+            button {
+                font-size: 16px;
+                padding: 10px 20px;
+                width: 150px;
+            }
+            .footer {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>加减法 - 选择位数</h1>
+        <p>选择位数</p>
+        <button class="menu-button" onclick="goToSubCategory('一位数')">一位数</button>
+        <button class="menu-button" onclick="goToSubCategory('二位数')">二位数</button>
+        <button class="menu-button" onclick="goToSubCategory('三位数')">三位数</button>
+        <button class="menu-button" onclick="goToSubCategory('四位数')">四位数</button>
+        <button class="menu-button" onclick="goToSubCategory('五位数')">五位数</button>
+        <button onclick="goBack()">返回主目录</button>
+        <div class="footer">
+            <p>作者：颜毅翔</p>
+            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+        </div>
+    </div>
+
+    <script>
+        function goToSubCategory(digits) {
+            window.location.href = `${digits}.html`;
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

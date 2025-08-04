@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习</title>
+    <title>珠心算练习首页</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,7 +13,6 @@
             background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
-            touch-action: manipulation;
         }
         .container {
             background-color: white;
@@ -25,142 +24,131 @@
             box-sizing: border-box;
         }
         h1 {
-            font-weight: bold;
-            color: black;
-        }
-        .author {
-            font-size: 14px;
-            color: #666;
-            margin-top: -10px;
-            margin-bottom: 20px;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
+            font-size: 24px;
             margin: 10px 0;
+            font-weight: bold;
+        }
+        .input-section, .menu-section {
+            display: none;
+        }
+        .input-section.active, .menu-section.active {
+            display: block;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            margin: 10px;
+            width: 200px;
         }
         button {
             padding: 12px 24px;
             font-size: 18px;
+            margin: 10px;
             cursor: pointer;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
-            min-height: 48px;
-            width: 100%;
-            max-width: 300px;
+            touch-action: manipulation;
         }
         button:hover {
             background-color: #45a049;
         }
-        #nameSection {
-            margin-bottom: 20px;
-        }
-        input[type="text"] {
-            padding: 10px;
-            font-size: 18px;
-            margin: 10px 0;
+        .menu-button {
+            display: block;
+            margin: 10px auto;
             width: 200px;
         }
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 300px;
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
             text-align: center;
         }
         @media (max-width: 600px) {
+            input[type="text"] {
+                font-size: 16px;
+                width: 150px;
+            }
             button {
                 font-size: 16px;
                 padding: 10px 20px;
+                width: 150px;
+            }
+            .footer {
+                font-size: 10px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>珠心算练习</h1>
-        <p class="author">作者：颜毅翔</p>
-        <div id="nameSection">
-            <label for="userName">修改姓名：</label>
-            <input type="text" id="userName" placeholder="请输入姓名">
-            <button onclick="saveName()">保存</button>
+        <div id="inputSection" class="input-section active">
+            <h1>请输入姓名</h1>
+            <input type="text" id="userNameInput" placeholder="请输入你的姓名">
+            <button onclick="saveName()">提交</button>
+            <div id="setupError"></div>
         </div>
-        <ul>
-            <li><button onclick="goToPractice('一位直加直减.html')">一位直加直减</button></li>
-            <li><button onclick="goToPractice('一位三笔.html')">一位三笔加减法</button></li>
-            <li><button onclick="goToPractice('一位五笔加减.html')">一位五笔加减法</button></li>
-            <li><button onclick="goToPractice('两位三笔加减.html')">两位三笔加减法</button></li>
-            <li><button onclick="goToPractice('一位乘法.html')">乘法: 一位乘一位</button></li>
-            <li><button onclick="goToPractice('两位乘法.html')">乘法: 两位乘一位</button></li>
-        </ul>
-    </div>
-
-    <!-- 欢迎模态框 -->
-    <div id="welcomeModal" class="modal">
-        <div class="modal-content">
-            <h2>欢迎！</h2>
-            <p>请输入您的姓名：</p>
-            <input type="text" id="welcomeName" placeholder="请输入姓名">
-            <button onclick="saveWelcomeName()">确认</button>
+        <div id="menuSection" class="menu-section">
+            <h1>选择练习类型</h1>
+            <button class="menu-button" onclick="goToCategory('加减法')">加减法</button>
+            <button class="menu-button" onclick="goToCategory('乘法')">乘法</button>
+            <button class="menu-button" onclick="goToCategory('除法')">除法</button>
+            <button onclick="modifyName()">修改姓名</button>
+        </div>
+        <div class="footer">
+            <p>作者：颜毅翔</p>
+            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
         </div>
     </div>
 
     <script>
-        // 检查是否已有名字
-        if (!localStorage.getItem('userName')) {
-            document.getElementById('welcomeModal').style.display = 'flex';
-        } else {
-            document.getElementById('userName').value = localStorage.getItem('userName');
-        }
-
-        function saveWelcomeName() {
-            const name = document.getElementById('welcomeName').value.trim();
-            if (name) {
-                localStorage.setItem('userName', name);
-                document.getElementById('welcomeModal').style.display = 'none';
-                document.getElementById('userName').value = name;
-            } else {
-                alert('请输入姓名！');
-            }
-        }
+        let userName = localStorage.getItem('userName') || '';
 
         function saveName() {
-            const name = document.getElementById('userName').value.trim();
-            if (name) {
-                localStorage.setItem('userName', name);
-                alert('姓名已保存！');
+            const nameInput = document.getElementById('userNameInput').value.trim();
+            if (nameInput) {
+                userName = nameInput;
+                localStorage.setItem('userName', userName);
+                document.getElementById('inputSection').classList.remove('active');
+                document.getElementById('menuSection').classList.add('active');
+                document.getElementById('setupError').innerText = '';
             } else {
-                alert('请输入姓名！');
+                document.getElementById('setupError').innerText = '姓名不能为空！';
             }
         }
 
-        function goToPractice(page) {
-            if (localStorage.getItem('userName')) {
-                window.location.href = page;
-            } else {
-                alert('请先输入姓名！');
+        function modifyName() {
+            document.getElementById('menuSection').classList.remove('active');
+            document.getElementById('inputSection').classList.add('active');
+            document.getElementById('userNameInput').value = userName;
+            document.getElementById('setupError').innerText = '';
+        }
+
+        function goToCategory(category) {
+            if (!userName || userName === '未知') {
+                document.getElementById('setupError').innerText = '请先设置姓名！';
+                return;
+            }
+            switch(category) {
+                case '加减法':
+                    window.location.href = '加减法.html';
+                    break;
+                case '乘法':
+                    window.location.href = '乘法.html';
+                    break;
+                case '除法':
+                    window.location.href = '除法.html';
+                    break;
             }
         }
+
+        window.onload = () => {
+            if (userName && userName !== '未知') {
+                document.getElementById('inputSection').classList.remove('active');
+                document.getElementById('menuSection').classList.add('active');
+            }
+        };
     </script>
 </body>
 </html>
