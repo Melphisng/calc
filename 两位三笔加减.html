@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（两位三笔加减）</title>
+    <title>珠心算练习（二位三笔加减）</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -31,7 +31,7 @@
         }
         .problem span {
             display: inline-block;
-            width: 60px; /* 适应两位数 */
+            width: 60px; /* 适应二位数 */
             text-align: right;
         }
         input[type="number"], input[type="text"] {
@@ -324,7 +324,7 @@
             let temp, result;
             let usedNumbers = new Set(); // 确保数字不重复
 
-            // 随机选择第一个两位数（10-99）
+            // 随机选择第一个二位数（10-99）
             nums.push(Math.floor(Math.random() * 90) + 10);
             usedNumbers.add(nums[0]);
             temp = nums[0];
@@ -449,7 +449,7 @@
             const xCenter = width / 2;
             ctx.fillText('珠心算练习结果', xCenter, y);
             y += lineHeight;
-            ctx.fillText('（两位三笔加减）', xCenter, y);
+            ctx.fillText('（二位三笔加减）', xCenter, y);
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>珠心算练习（一位七笔加减）</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .problem {
+            font-size: 24px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .problem span {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+        }
+        input[type="number"], input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            margin: 10px;
+            width: 100px;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            touch-action: manipulation;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            min-height: 48px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #shareButton {
+            background-color: #1a73e8;
+        }
+        #shareButton:hover {
+            background-color: #1557b0;
+        }
+        #pdfButton {
+            background-color: #FF5722;
+        }
+        #pdfButton:hover {
+            background-color: #E64A19;
+        }
+        #result, #setupError {
+            font-size: 18px;
+            margin-top: 10px;
+            color: red;
+        }
+        #encouragement {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .correct { color: green; }
+        .incorrect { color: red; }
+        .keyboard {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin: 10px auto;
+            max-width: 300px;
+        }
+        .keyboard button {
+            padding: 15px;
+            font-size: 20px;
+            background-color: #666666;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            min-height: 48px;
+            transition: background-color 0.1s, transform 0.1s;
+        }
+        .keyboard button:active {
+            transform: scale(0.95);
+            background-color: #555555 !important;
+        }
+        .keyboard .zero-button {
+            grid-column: 2;
+        }
+        .keyboard .delete-button {
+            grid-column: 3;
+            background-color: #ff0000 !important;
+        }
+        .keyboard .delete-button:active {
+            background-color: #cc0000 !important;
+        }
+        #shareArea {
+            background-color: white;
+            padding: 10px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            .problem {
+                font-size: 20px;
+            }
+            input[type="number"], input[type="text"] {
+                font-size: 16px;
+                width: 80px;
+            }
+            button {
+                font-size: 16px;
+                padding: 10px 30px;
+            }
+            #submitButton, #startButton {
+                width: 240px;
+            }
+            .keyboard {
+                display: grid;
+            }
+            .keyboard button {
+                padding: 20px;
+                font-size: 24px;
+            }
+            #encouragement {
+                font-size: 16px;
+            }
+            .footer {
+                font-size: 10px;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div id="setup" style="display: block;">
+            <label for="numQuestions">选择题目数量：</label>
+            <select id="numQuestions">
+                <option value="10">10</option>
+                <option value="40">40</option>
+                <option value="80">80</option>
+                <option value="120">120</option>
+                <option value="160">160</option>
+                <option value="200">200</option>
+                <option value="240">240</option>
+            </select>
+            <button id="startButton" type="button" onclick="startPractice()" ontouchstart="">开始练习</button>
+            <div id="setupError"></div>
+        </div>
+        <div id="practice" style="display: none;">
+            <h2>第 <span id="currentQuestion">1</span> 题</h2>
+            <div id="problem" class="problem"></div>
+            <input type="number" id="answer" placeholder="输入答案">
+            <div class="keyboard" id="keyboard">
+                <button data-key="7">7</button>
+                <button data-key="8">8</button>
+                <button data-key="9">9</button>
+                <button data-key="4">4</button>
+                <button data-key="5">5</button>
+                <button data-key="6">6</button>
+                <button data-key="1">1</button>
+                <button data-key="2">2</button>
+                <button data-key="3">3</button>
+                <button class="zero-button" data-key="0">0</button>
+                <button class="delete-button" data-key="delete">删除</button>
+            </div>
+            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="">提交</button>
+            <div id="result"></div>
+        </div>
+        <div id="summary" style="display: none;">
+            <div id="shareArea">
+                <h2>练习结果</h2>
+                <p>姓名：<span id="userNameDisplay"></span></p>
+                <p>答对题数：<span id="correctCount"></span></p>
+                <p>总用时：<span id="totalTime"></span></p>
+                <p>完成时间：<span id="completionTime"></span></p>
+            </div>
+            <p id="encouragement"></p>
+            <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
+            <button id="pdfButton" type="button" onclick="generatePDF()" ontouchstart="">生成PDF报告</button>
+            <button type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
+            <h3>题目分析</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>题目</th>
+                        <th>你的答案</th>
+                        <th>正确性</th>
+                        <th>正确答案</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTable"></tbody>
+            </table>
+        </div>
+        <div class="footer">
+            <p>作者：颜毅翔</p>
+            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+        </div>
+    </div>
+    <canvas id="shareCanvas" style="display: none;"></canvas>
+
+    <script>
+        let problems = [];
+        let currentIndex = 0;
+        let startTime;
+        let numQuestions;
+        let userName = localStorage.getItem('userName') || '未知';
+        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let lastInputTime = 0;
+        const debounceDelay = 100; // 100ms debounce
+
+        const encouragements = [
+            '太棒了！你的努力让人佩服！',
+            '继续加油，你越来越厉害了！',
+            '哇，算得真快！再接再厉！',
+            '很棒的表现，保持下去！',
+            '你真是个珠心算小能手！',
+            '进步神速，继续挑战吧！'
+        ];
+
+        function inputKey(key) {
+            const now = Date.now();
+            if (now - lastInputTime < debounceDelay) return; // 防抖
+            lastInputTime = now;
+
+            const input = document.getElementById('answer');
+            if (key === 'delete') {
+                input.value = '';
+            } else {
+                input.value += key;
+            }
+            if (isMobile && 'vibrate' in navigator) {
+                navigator.vibrate(50);
+            }
+        }
+
+        function formatDateTime(date) {
+            const offset = 8 * 60;
+            const localDate = new Date(date.getTime() + offset * 60 * 1000);
+            const year = localDate.getUTCFullYear();
+            const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getUTCDate()).padStart(2, '0');
+            const hours = String(localDate.getUTCHours()).padStart(2, '0');
+            const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+            const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function generateProblem() {
+            let nums = [];
+            let ops = [''];
+            let temp, result;
+
+            // 随机选择第一个一位数（1-9）
+            nums.push(Math.floor(Math.random() * 9) + 1);
+            temp = nums[0];
+
+            for (let i = 1; i < 7; i++) { // 7 numbers, 6 operations
+                let op = Math.random() > 0.5 ? '+' : '-';
+                let maxNum = op === '-' ? temp : 9; // 确保无负数且数字为一位数
+                if (maxNum < 1) {
+                    return generateProblem(); // 递归重试
+                }
+                let num = Math.floor(Math.random() * maxNum) + 1;
+                temp = op === '+' ? temp + num : temp - num;
+                if (temp < 0) {
+                    return generateProblem(); // 递归重试
+                }
+                nums.push(num);
+                ops.push(op);
+            }
+            result = temp;
+
+            // 确保最终结果是一位数（1-9）
+            if (result < 1 || result > 9) {
+                return generateProblem();
+            }
+
+            // 验证题目中的数字是否都是一位数
+            if (nums.some(num => num < 1 || num > 9)) {
+                return generateProblem();
+            }
+
+            const practiceArr = nums.map((num, i) => {
+                let sign = ops[i] === '-' ? '-' : (i === 0 ? '' : '');
+                return `<span>${sign}${num}</span>`;
+            });
+            const practiceText = practiceArr.join('<br>');
+
+            const summaryArr = nums.map((num, i) => ops[i] + num);
+            const summaryText = summaryArr.join(' ');
+
+            return { practiceText, summaryText, answer: result };
+        }
+
+        function startPractice() {
+            console.log('startPractice called');
+            if (!userName || userName === '未知') {
+                document.getElementById('setupError').innerText = '请先在主页设置姓名！';
+                return;
+            }
+            document.getElementById('setupError').innerText = '';
+            numQuestions = parseInt(document.getElementById('numQuestions').value);
+            problems = [];
+            for (let i = 0; i < numQuestions; i++) {
+                problems.push(generateProblem());
+            }
+            currentIndex = 0;
+            startTime = new Date();
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('practice').style.display = 'block';
+            showProblem();
+        }
+
+        function showProblem() {
+            console.log(`showProblem: currentIndex=${currentIndex}, problems.length=${problems.length}`);
+            if (currentIndex >= problems.length) {
+                console.log('Transitioning to summary');
+                showSummary();
+                return;
+            }
+            document.getElementById('currentQuestion').innerText = currentIndex + 1;
+            document.getElementById('problem').innerHTML = problems[currentIndex].practiceText;
+            document.getElementById('problem').dataset.answer = problems[currentIndex].answer;
+            document.getElementById('answer').value = '';
+            document.getElementById('result').innerText = '';
+        }
+
+        function checkAnswer() {
+            console.log(`checkAnswer: currentIndex=${currentIndex}`);
+            const userAnswer = parseInt(document.getElementById('answer').value);
+            const correctAnswer = parseInt(document.getElementById('problem').dataset.answer);
+            if (isNaN(userAnswer)) {
+                document.getElementById('result').innerText = '请输入答案！';
+                return;
+            }
+            problems[currentIndex].userAnswer = userAnswer;
+            problems[currentIndex].correct = userAnswer === correctAnswer;
+            currentIndex++;
+            console.log(`checkAnswer: incremented currentIndex=${currentIndex}`);
+            showProblem();
+        }
+
+        function drawShareCanvas() {
+            const shareArea = document.getElementById('shareArea');
+            const canvas = document.getElementById('shareCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = shareArea.offsetWidth;
+            const height = shareArea.offsetHeight + 90;
+            canvas.width = width;
+            canvas.height = height;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+            const xLeft = 20;
+            let y = 30;
+            const lineHeight = 30;
+            ctx.font = '20px bold Arial';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            const xCenter = width / 2;
+            ctx.fillText('珠心算练习结果', xCenter, y);
+            y += lineHeight;
+            ctx.fillText('（一位七笔加减）', xCenter, y);
+            y += lineHeight;
+            ctx.textAlign = 'left';
+            ctx.font = '16px bold Arial';
+            ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.font = '16px Arial';
+            ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
+            y += lineHeight;
+            ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
+            y += 2 * lineHeight;
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#666666';
+            ctx.textAlign = 'center';
+            ctx.fillText('作者：颜毅翔', xCenter, y);
+            return canvas;
+        }
+
+        function shareResult() {
+            const canvas = drawShareCanvas();
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'result.png', { type: 'image/png' });
+                if (navigator.share && isMobile) {
+                    navigator.share({
+                        files: [file],
+                        title: '珠心算练习结果',
+                        text: '看看我的珠心算练习成绩！'
+                    }).catch(err => console.error('分享失败:', err));
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'result.png';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            });
+        }
+
+        function generatePDF() {
+            const canvas = drawShareCanvas();
+            const imgData = canvas.toDataURL('image/png');
+            const imgProps = { width: canvas.width, height: canvas.height };
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight); // 保持原始比例
+
+            pdf.setLineWidth(0.5);
+            pdf.setDrawColor(0, 0, 0); // 黑色实线
+            pdf.setFont('helvetica', 'normal'); // Explicitly set Helvetica font
+
+            // 表格位置，从图片下方开始
+            let y = 10 + pdfImageHeight + 10; // 图片下方间距
+            const rowHeight = 10;
+            const colWidths = [80, 40, 40, 30]; // Adjusted: wider first column, total 190mm
+            const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
+
+            function drawTableHeader() {
+                pdf.setFontSize(12);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('QUESTION', 10 + colWidths[0] / 2, y + 7, { align: 'center' });
+                pdf.text('YOUR ANSWER', 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
+                pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
+                pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
+                y += rowHeight;
+                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
+                pdf.line(10, y, 200, y); // 底线
+                let x = 10;
+                colWidths.forEach(width => {
+                    pdf.line(x, y - rowHeight, x, y);
+                    x += width;
+                });
+                pdf.line(x, y - rowHeight, x, y); // 右边线
+            }
+
+            drawTableHeader();
+
+            // 绘制表格行
+            problems.forEach((problem) => {
+                // 检查是否需要分页
+                if (y + rowHeight > pageHeight) {
+                    pdf.addPage();
+                    y = 10;
+                    drawTableHeader(); // 新页重绘表头
+                }
+
+                pdf.setFontSize(10); // Ensure font size is 10 for all rows
+                pdf.setTextColor(0, 0, 0);
+                // Render problem text in a single line, truncating if necessary
+                const maxWidth = colWidths[0] - 5; // 75mm
+                const questionText = pdf.splitTextToSize(problem.summaryText, maxWidth, { fontSize: 10 })[0]; // Take first line only
+                pdf.text(questionText, 10 + colWidths[0] / 2, y + 7, { align: 'center', maxWidth: maxWidth });
+
+                if (problem.correct) {
+                    pdf.setTextColor(0, 128, 128); // 深青色
+                } else {
+                    pdf.setTextColor(255, 0, 0); // 红色
+                }
+                pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + 7, { align: 'center' });
+
+                if (problem.correct) {
+                    pdf.setTextColor(0, 128, 128); // 深青色
+                    pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
+                } else {
+                    pdf.setTextColor(255, 0, 0); // 红色
+                    pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
+                }
+
+                pdf.setTextColor(0, 0, 0); // 黑色
+                pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
+
+                // 绘制行线
+                pdf.line(10, y, 200, y); // 顶线 (前一行底线)
+                y += rowHeight;
+                pdf.line(10, y, 200, y); // 底线
+                let x = 10;
+                colWidths.forEach(width => {
+                    pdf.line(x, y - rowHeight, x, y);
+                    x += width;
+                });
+                pdf.line(x, y - rowHeight, x, y); // 右边线
+            });
+
+            pdf.save('report.pdf');
+        }
+
+        function showSummary() {
+            console.log('showSummary called');
+            document.getElementById('practice').style.display = 'none';
+            document.getElementById('summary').style.display = 'block';
+            const endTime = new Date();
+            const timeTaken = Math.round((endTime - startTime) / 1000);
+            const correctCount = problems.filter(p => p.correct).length;
+            document.getElementById('userNameDisplay').innerText = userName;
+            document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
+            document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
+            document.getElementById('completionTime').innerText = formatDateTime(endTime);
+            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+            const table = document.getElementById('summaryTable');
+            table.innerHTML = '';
+            problems.forEach((problem, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${problem.summaryText}</td>
+                    <td>${problem.userAnswer !== undefined ? problem.userAnswer : '-'}</td>
+                    <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? '正确' : '错误'}</td>
+                    <td>${problem.answer}</td>
+                `;
+                table.appendChild(row);
+            });
+        }
+
+        function returnToHome() {
+            window.location.href = 'index.html';
+        }
+
+        window.onload = () => {
+            console.log('window.onload: Initializing');
+            document.getElementById('setup').style.display = 'block';
+            const answerInput = document.getElementById('answer');
+            if (isMobile) {
+                answerInput.readOnly = true;
+                document.getElementById('keyboard').style.display = 'grid';
+                answerInput.addEventListener('focus', () => {
+                    answerInput.blur();
+                });
+            } else {
+                document.getElementById('keyboard').style.display = 'none';
+            }
+            answerInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    console.log('Enter key pressed, calling checkAnswer');
+                    checkAnswer();
+                }
+            });
+            const submitButton = document.getElementById('submitButton');
+            submitButton.addEventListener('click', () => {
+                console.log('Submit button clicked');
+                checkAnswer();
+            });
+            if (isMobile) {
+                submitButton.addEventListener('touchstart', (event) => {
+                    event.preventDefault();
+                    console.log('Submit button touched');
+                    checkAnswer();
+                });
+            }
+            const buttons = document.querySelectorAll('.keyboard button');
+            buttons.forEach(button => {
+                const key = button.dataset.key;
+                button.addEventListener('click', () => {
+                    console.log(`Keyboard button ${key} clicked`);
+                    inputKey(key);
+                });
+                if (isMobile) {
+                    button.addEventListener('touchstart', (event) => {
+                        event.preventDefault();
+                        console.log(`Keyboard button ${key} touched`);
+                        inputKey(key);
+                    });
+                }
+            });
+            if (!localStorage.getItem('userName')) {
+                document.getElementById('setupError').innerText = '请先在主页设置姓名！';
+                document.getElementById('startButton').disabled = true;
+            }
+        };
+    </script>
+</body>
+</html>
