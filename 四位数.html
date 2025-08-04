@@ -1,9 +1,48 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>加减法 - 四位数</title>
+    <title>加减法 - 四位数 / Addition and Subtraction - 4-digits</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,6 +61,7 @@
             text-align: center;
             max-width: 100%;
             box-sizing: border-box;
+            position: relative;
         }
         h1 {
             font-size: 24px;
@@ -54,6 +94,25 @@
             margin: 10px auto;
             width: 200px;
         }
+        .lang-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            padding: 5px 10px;
+            background-color: #008CBA;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .lang-toggle:hover {
+            background-color: #007399;
+        }
         .footer {
             margin-top: 20px;
             font-size: 12px;
@@ -72,6 +131,12 @@
                 padding: 10px 20px;
                 width: 150px;
             }
+            .lang-toggle {
+                font-size: 14px;
+                width: 25px;
+                height: 25px;
+                padding: 4px;
+            }
             .footer {
                 font-size: 10px;
             }
@@ -80,22 +145,78 @@
 </head>
 <body>
     <div class="container">
-        <h1>加减法 - 四位</h1>
-        <p>选择练习</p>
-        <button class="menu-button" onclick="window.location.href='四位二笔.html'">四位二笔</button>
-        <button class="menu-button" onclick="window.location.href='四位三笔.html'">四位三笔</button>
-        <button class="menu-button" onclick="window.location.href='四位五笔.html'">四位五笔</button>
-        <button onclick="goBack()">返回上一级</button>
+        <button class="lang-toggle" onclick="toggleLanguage()">🌐</button>
+        <h1 id="title">加减法 - 四位</h1>
+        <p id="selectExercise">选择练习</p>
+        <button class="menu-button" onclick="window.location.href='四位二笔.html'" id="twoSteps">四位二笔</button>
+        <button class="menu-button" onclick="window.location.href='四位三笔.html'" id="threeSteps">四位三笔</button>
+        <button class="menu-button" onclick="window.location.href='四位五笔.html'" id="fiveSteps">四位五笔</button>
+        <button onclick="goBack()" id="returnPrevious">返回上一级</button>
         <div class="footer">
-            <p>作者：颜毅翔</p>
-            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+            <p id="author">作者：颜毅翔</p>
+            <p id="aiUsage">AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
         </div>
     </div>
 
     <script>
+        let language = localStorage.getItem('language') || 'zh';
+
+        const translations = {
+            zh: {
+                title: '加减法 - 四位',
+                selectExercise: '选择练习',
+                twoSteps: '四位二笔',
+                threeSteps: '四位三笔',
+                fiveSteps: '四位五笔',
+                returnPrevious: '返回上一级',
+                author: '作者：颜毅翔',
+                aiUsage: 'AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。'
+            },
+            en: {
+                title: 'Addition and Subtraction - 4-digits',
+                selectExercise: 'Select Exercise',
+                twoSteps: '4-digits Two Steps',
+                threeSteps: '4-digits Three Steps',
+                fiveSteps: '4-digits Five Steps',
+                returnPrevious: 'Return to Previous Level',
+                author: 'Author: Melphis Ng',
+                aiUsage: 'AI Tool Usage: Part of the code was generated with the assistance of AI (Grok 3), with creativity and logic conceived by the author.'
+            }
+        };
+
+        function updateLanguage() {
+            document.title = translations[language].title;
+            const elements = {
+                '#title': 'title',
+                '#selectExercise': 'selectExercise',
+                '#twoSteps': 'twoSteps',
+                '#threeSteps': 'threeSteps',
+                '#fiveSteps': 'fiveSteps',
+                '#returnPrevious': 'returnPrevious',
+                '#author': 'author',
+                '#aiUsage': 'aiUsage'
+            };
+            Object.keys(elements).forEach(selector => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    element.innerText = translations[language][elements[selector]];
+                }
+            });
+        }
+
+        function toggleLanguage() {
+            language = language === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('language', language);
+            updateLanguage();
+        }
+
         function goBack() {
             window.location.href = '加减法.html';
         }
+
+        window.onload = () => {
+            updateLanguage();
+        };
     </script>
 </body>
 </html>

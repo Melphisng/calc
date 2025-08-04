@@ -1,9 +1,48 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习首页</title>
+    <title>珠心算练习首页 / Abacus Practice Home</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,16 +61,17 @@
             text-align: center;
             max-width: 100%;
             box-sizing: border-box;
+            position: relative;
         }
         h1 {
             font-size: 24px;
             margin: 10px 0;
             font-weight: bold;
         }
-        .input-section, .menu-section {
+        .input-section, .menu-section, .lang-section {
             display: none;
         }
-        .input-section.active, .menu-section.active {
+        .input-section.active, .menu-section.active, .lang-section.active {
             display: block;
         }
         input[type="text"] {
@@ -59,6 +99,25 @@
             margin: 10px auto;
             width: 200px;
         }
+        .lang-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            padding: 5px 10px;
+            background-color: #008CBA;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .lang-toggle:hover {
+            background-color: #007399;
+        }
         .footer {
             margin-top: 20px;
             font-size: 12px;
@@ -75,6 +134,12 @@
                 padding: 10px 20px;
                 width: 150px;
             }
+            .lang-toggle {
+                font-size: 14px;
+                width: 25px;
+                height: 25px;
+                padding: 4px;
+            }
             .footer {
                 font-size: 10px;
             }
@@ -83,27 +148,122 @@
 </head>
 <body>
     <div class="container">
+        <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()" style="display: none;">🌐</button>
         <div id="inputSection" class="input-section active">
-            <h1>请输入姓名</h1>
-            <input type="text" id="userNameInput" placeholder="请输入你的姓名">
-            <button onclick="saveName()">提交</button>
+            <h1>请输入姓名 / Enter Your Name</h1>
+            <input type="text" id="userNameInput" placeholder="请输入你的姓名 / Enter Your Name">
+            <button onclick="saveName()">提交 / Submit</button>
             <div id="setupError"></div>
         </div>
+        <div id="langSection" class="lang-section">
+            <h1>选择语言 / Select Language</h1>
+            <button onclick="setLanguage('zh')">中文 / Chinese</button>
+            <button onclick="setLanguage('en')">英文 / English</button>
+        </div>
         <div id="menuSection" class="menu-section">
-            <h1>选择练习类型</h1>
-            <button class="menu-button" onclick="goToCategory('加减法')">加减法</button>
-            <button class="menu-button" onclick="goToCategory('乘法')">乘法</button>
-            <button class="menu-button" onclick="goToCategory('除法')">除法</button>
-            <button onclick="modifyName()">修改姓名</button>
+            <h1 id="menuTitle">选择练习类型</h1>
+            <button class="menu-button" onclick="goToCategory('加减法')" id="additionSubtraction">加减法</button>
+            <button class="menu-button" onclick="goToCategory('乘法')" id="multiplication">乘法</button>
+            <button class="menu-button" onclick="goToCategory('除法')" id="division">除法</button>
+            <button onclick="modifyName()" id="rename">修改姓名</button>
         </div>
         <div class="footer">
-            <p>作者：颜毅翔</p>
-            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+            <p id="author">作者：颜毅翔</p>
+            <p id="aiUsage">AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
         </div>
     </div>
 
     <script>
         let userName = localStorage.getItem('userName') || '';
+        let language = localStorage.getItem('language') || 'zh';
+
+        const translations = {
+            zh: {
+                title: '珠心算练习首页',
+                enterName: '请输入姓名',
+                submit: '提交',
+                selectPractice: '选择练习类型',
+                additionSubtraction: '加减法',
+                multiplication: '乘法',
+                division: '除法',
+                rename: '修改姓名',
+                selectLanguage: '选择语言',
+                chinese: '中文',
+                english: '英文',
+                errorEmptyName: '姓名不能为空！',
+                errorNoName: '请先设置姓名！',
+                author: '作者：颜毅翔',
+                aiUsage: 'AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。'
+            },
+            en: {
+                title: 'Abacus Practice Home',
+                enterName: 'Enter Your Name',
+                submit: 'Submit',
+                selectPractice: 'Select Practice',
+                additionSubtraction: 'Addition and Subtraction',
+                multiplication: 'Multiplication',
+                division: 'Division',
+                rename: 'Rename',
+                selectLanguage: 'Select Language',
+                chinese: 'Chinese',
+                english: 'English',
+                errorEmptyName: 'Name cannot be empty!',
+                errorNoName: 'Please set a name first!',
+                author: 'Author: Melphis Ng',
+                aiUsage: 'AI Tool Usage: Part of the code was generated with the assistance of AI (Grok 3), with creativity and logic conceived by the author.'
+            }
+        };
+
+        function updateLanguage() {
+            document.title = translations[language].title;
+            const isInitialScreen = document.getElementById('inputSection').classList.contains('active') || 
+                                   document.getElementById('langSection').classList.contains('active');
+            const elements = {
+                'inputSection h1': 'enterName',
+                'inputSection input': 'enterName',
+                'inputSection button': 'submit',
+                'langSection h1': 'selectLanguage',
+                'langSection button:nth-child(1)': 'chinese',
+                'langSection button:nth-child(2)': 'english',
+                '#menuTitle': 'selectPractice',
+                '#additionSubtraction': 'additionSubtraction',
+                '#multiplication': 'multiplication',
+                '#division': 'division',
+                '#rename': 'rename',
+                '#author': 'author',
+                '#aiUsage': 'aiUsage'
+            };
+            Object.keys(elements).forEach(selector => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    const key = elements[selector];
+                    if (selector.includes('input')) {
+                        element.placeholder = isInitialScreen ? 
+                            `${translations.zh[key]} / ${translations.en[key]}` : 
+                            translations[language][key];
+                    } else {
+                        element.innerText = isInitialScreen ? 
+                            `${translations.zh[key]} / ${translations.en[key]}` : 
+                            translations[language][key];
+                    }
+                }
+            });
+            document.getElementById('langToggle').style.display = isInitialScreen ? 'none' : 'block';
+        }
+
+        function toggleLanguage() {
+            language = language === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('language', language);
+            updateLanguage();
+        }
+
+        function setLanguage(lang) {
+            language = lang;
+            localStorage.setItem('language', language);
+            document.getElementById('langSection').classList.remove('active');
+            document.getElementById('menuSection').classList.add('active');
+            updateLanguage();
+        }
 
         function saveName() {
             const nameInput = document.getElementById('userNameInput').value.trim();
@@ -111,10 +271,11 @@
                 userName = nameInput;
                 localStorage.setItem('userName', userName);
                 document.getElementById('inputSection').classList.remove('active');
-                document.getElementById('menuSection').classList.add('active');
+                document.getElementById('langSection').classList.add('active');
                 document.getElementById('setupError').innerText = '';
+                updateLanguage();
             } else {
-                document.getElementById('setupError').innerText = '姓名不能为空！';
+                document.getElementById('setupError').innerText = translations[language].errorEmptyName;
             }
         }
 
@@ -123,11 +284,12 @@
             document.getElementById('inputSection').classList.add('active');
             document.getElementById('userNameInput').value = userName;
             document.getElementById('setupError').innerText = '';
+            updateLanguage();
         }
 
         function goToCategory(category) {
             if (!userName || userName === '未知') {
-                document.getElementById('setupError').innerText = '请先设置姓名！';
+                document.getElementById('setupError').innerText = translations[language].errorNoName;
                 return;
             }
             switch(category) {
@@ -146,8 +308,13 @@
         window.onload = () => {
             if (userName && userName !== '未知') {
                 document.getElementById('inputSection').classList.remove('active');
-                document.getElementById('menuSection').classList.add('active');
+                if (!localStorage.getItem('language')) {
+                    document.getElementById('langSection').classList.add('active');
+                } else {
+                    document.getElementById('menuSection').classList.add('active');
+                }
             }
+            updateLanguage();
         };
     </script>
 </body>
