@@ -1,9 +1,48 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>珠心算练习（二位三笔加减）</title>
+    <title>珠心算练习（二位三笔加减） / Abacus Practice (Two-Digit Three-Step Addition/Subtraction)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,6 +62,7 @@
             text-align: center;
             max-width: 100%;
             box-sizing: border-box;
+            position: relative;
         }
         .problem {
             font-size: 24px;
@@ -141,6 +181,25 @@
             color: #666;
             text-align: center;
         }
+        .lang-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            padding: 5px 10px;
+            background-color: #008CBA;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .lang-toggle:hover {
+            background-color: #007399;
+        }
         @media (max-width: 600px) {
             .problem {
                 font-size: 20px;
@@ -167,11 +226,21 @@
                 padding: 20px;
                 font-size: 24px;
             }
+            .keyboard .delete-button {
+                padding: 15px;
+                font-size: 20px;
+            }
             #encouragement {
                 font-size: 16px;
             }
             .footer {
                 font-size: 10px;
+            }
+            .lang-toggle {
+                font-size: 14px;
+                width: 25px;
+                height: 25px;
+                padding: 4px;
             }
         }
     </style>
@@ -179,8 +248,9 @@
 </head>
 <body>
     <div class="container">
+        <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()" style="display: none;">🌐</button>
         <div id="setup" style="display: block;">
-            <label for="numQuestions">选择题目数量：</label>
+            <label for="numQuestions">选择题目数量 / Select Number of Questions:</label>
             <select id="numQuestions">
                 <option value="10">10</option>
                 <option value="40">40</option>
@@ -190,13 +260,13 @@
                 <option value="200">200</option>
                 <option value="240">240</option>
             </select>
-            <button id="startButton" type="button" onclick="startPractice()" ontouchstart="">开始练习</button>
+            <button id="startButton" type="button" onclick="startPractice()" ontouchstart="">开始练习 / Start Practice</button>
             <div id="setupError"></div>
         </div>
         <div id="practice" style="display: none;">
-            <h2>第 <span id="currentQuestion">1</span> 题</h2>
+            <h2 id="questionTitle">第 <span id="currentQuestion">1</span> 题 / Question <span id="currentQuestion">1</span></h2>
             <div id="problem" class="problem"></div>
-            <input type="number" id="answer" placeholder="输入答案">
+            <input type="number" id="answer" placeholder="输入答案 / Enter Answer">
             <div class="keyboard" id="keyboard">
                 <button data-key="7">7</button>
                 <button data-key="8">8</button>
@@ -208,39 +278,39 @@
                 <button data-key="2">2</button>
                 <button data-key="3">3</button>
                 <button class="zero-button" data-key="0">0</button>
-                <button class="delete-button" data-key="delete">删除</button>
+                <button class="delete-button" data-key="delete">⌫</button>
             </div>
-            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="">提交</button>
+            <button id="submitButton" type="button" onclick="checkAnswer()" ontouchstart="">提交 / Submit</button>
             <div id="result"></div>
         </div>
         <div id="summary" style="display: none;">
             <div id="shareArea">
-                <h2>练习结果</h2>
-                <p>姓名：<span id="userNameDisplay"></span></p>
-                <p>答对题数：<span id="correctCount"></span></p>
-                <p>总用时：<span id="totalTime"></span></p>
-                <p>完成时间：<span id="completionTime"></span></p>
+                <h2 id="practiceResults">练习结果</h2>
+                <p><span id="nameLabel">姓名</span>：<span id="userNameDisplay"></span></p>
+                <p><span id="correctCountLabel">答对题数</span>：<span id="correctCount"></span></p>
+                <p><span id="totalTimeLabel">总用时</span>：<span id="totalTime"></span></p>
+                <p><span id="completionTimeLabel">完成时间</span>：<span id="completionTime"></span></p>
             </div>
             <p id="encouragement"></p>
             <button id="shareButton" type="button" onclick="shareResult()" ontouchstart="">分享</button>
             <button id="pdfButton" type="button" onclick="generatePDF()" ontouchstart="">生成PDF报告</button>
-            <button type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
-            <h3>题目分析</h3>
+            <button id="returnHomeButton" type="button" onclick="returnToHome()" ontouchstart="">返回目录</button>
+            <h3 id="analysisTitle">题目分析</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>题目</th>
-                        <th>你的答案</th>
-                        <th>正确性</th>
-                        <th>正确答案</th>
+                        <th id="problemHeader">题目</th>
+                        <th id="userAnswerHeader">你的答案</th>
+                        <th id="correctnessHeader">正确性</th>
+                        <th id="correctAnswerHeader">正确答案</th>
                     </tr>
                 </thead>
                 <tbody id="summaryTable"></tbody>
             </table>
         </div>
         <div class="footer">
-            <p>作者：颜毅翔</p>
-            <p>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+            <p id="author"><span>作者：颜毅翔<br>Author: Melphis Ng</span></p>
+            <p id="aiUsage"><span>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。<br>AI Tool Usage: Part of the code was generated with the assistance of AI (Grok 3), with creativity and logic conceived by the author.</span></p>
         </div>
     </div>
     <canvas id="shareCanvas" style="display: none;"></canvas>
@@ -250,51 +320,174 @@
         let currentIndex = 0;
         let startTime;
         let numQuestions;
-        let userName = localStorage.getItem('userName') || '未知'; // 从localStorage读取
+        let userName = localStorage.getItem('userName') || '未知';
+        let language = localStorage.getItem('language') || 'zh';
         let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let lastInputTime = 0;
-        const debounceDelay = 100; // 100ms debounce
+        const debounceDelay = 100;
 
-        const encouragements = [
-            '太棒了！你的努力让人佩服！',
-            '继续加油，你越来越厉害了！',
-            '哇，算得真快！再接再厉！',
-            '很棒的表现，保持下去！',
-            '你真是个珠心算小能手！',
-            '进步神速，继续挑战吧！'
-        ];
-
-        // 直加直减允许的操作列表（单列，应用于十位和个位）
-        const directOperations = {
-            '+': {
-                0: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-                1: [1, 2, 3, 4, 5, 6, 7, 8],
-                2: [1, 2, 3, 4, 5, 6, 7],
-                3: [1, 2, 3, 4, 5, 6],
-                4: [1, 2, 3, 4, 5],
-                5: [1, 2, 3, 4],
-                6: [1, 2, 3],
-                7: [1, 2],
-                8: [1]
+        const encouragementsByPercentage = {
+            below10: {
+                zh: [
+                    "别灰心！每一次尝试都在让你更强，继续努力哦！",
+                    "小小挫折不算啥，多练习几次，你会越来越棒！",
+                    "坚持就是胜利！再多试试，你一定能进步的！",
+                    "每一步都在靠近目标，加油，你可以的！"
+                ],
+                en: [
+                    "Don't be discouraged! Every attempt makes you stronger, keep trying!",
+                    "A little setback is nothing, practice more and you'll get better!",
+                    "Persistence is victory! Try a bit more, and you'll definitely improve!",
+                    "Every step brings you closer to your goal, keep it up, you can do it!"
+                ]
             },
-            '-': {
-                1: [1],
-                2: [1, 2],
-                3: [1, 2, 3],
-                4: [1, 2, 3, 4],
-                5: [1, 2, 3, 4, 5],
-                6: [1, 2, 3, 4, 5, 6],
-                7: [1, 2, 3, 4, 5, 6, 7],
-                8: [1, 2, 3, 4, 5, 6, 7, 8],
-                9: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            from10to40: {
+                zh: [
+                    "不错哦！下次再努力一点，成绩会更好！",
+                    "你已经迈出了第一步，继续加油吧！",
+                    "进步正在路上，下次一定会有惊喜！",
+                    "再多练习几次，你会发现自己越来越厉害！"
+                ],
+                en: [
+                    "Nice job! Try a bit harder next time, and your score will improve!",
+                    "You've taken the first step, keep pushing forward!",
+                    "Progress is on the way, next time will bring surprises!",
+                    "Practice a few more times, and you'll see how awesome you can be!"
+                ]
+            },
+            from40to60: {
+                zh: [
+                    "很不错！再加把劲，你会更出色！",
+                    "已经很棒了，继续努力会有更大进步！",
+                    "你的表现很亮眼，再接再厉哦！",
+                    "成绩很可观，继续保持，进步空间还很大！"
+                ],
+                en: [
+                    "Very nice! Push a little more, and you'll shine even brighter!",
+                    "Already great, keep working and you'll make even bigger progress!",
+                    "Your performance is impressive, keep up the momentum!",
+                    "Solid results, stay consistent, there's still room to grow!"
+                ]
+            },
+            from60to80: {
+                zh: [
+                    "太优秀了！保持势头，继续加油！",
+                    "你的表现很棒，继续努力会更厉害！",
+                    "真是个小能手！再接再厉，未来可期！",
+                    "成绩很出色，继续保持你的好状态！"
+                ],
+                en: [
+                    "So excellent! Keep the momentum going, you got this!",
+                    "Your performance is awesome, keep trying to be even better!",
+                    "You're a real pro! Keep it up, the future looks bright!",
+                    "Outstanding results, maintain that great form!"
+                ]
+            },
+            from80to100: {
+                zh: [
+                    "非常棒！你的努力让人佩服，继续保持！",
+                    "太厉害了！再接再厉，你会更优秀！",
+                    "成绩超级棒，继续努力，未来更精彩！",
+                    "你已经很接近完美了，继续加油哦！"
+                ],
+                en: [
+                    "Absolutely fantastic! Your effort is admirable, keep it up!",
+                    "Super impressive! Keep pushing, you'll be even better!",
+                    "Amazing results, keep working, your future is bright!",
+                    "You're so close to perfect, keep fueling your effort!"
+                ]
+            },
+            fullMarks: {
+                zh: [
+                    "真是天才！完美表现，太了不起了！",
+                    "满分！你是珠心算的超级明星！",
+                    "无与伦比的天才！继续保持你的光芒！",
+                    "完美成绩！你简直是数学小天才！"
+                ],
+                en: [
+                    "You're a genius! Perfect performance, absolutely amazing!",
+                    "Full marks! You're a mental math superstar!",
+                    "Unmatched genius! Keep shining bright!",
+                    "Perfect score! You're truly a math prodigy!"
+                ]
             }
         };
 
+        const translations = {
+            zh: {
+                selectQuestions: '选择题目数量',
+                startPractice: '开始练习',
+                question: '第 {n} 题',
+                enterAnswer: '输入答案',
+                submit: '提交',
+                practiceResults: '练习结果',
+                name: '姓名',
+                correctCount: '答对题数',
+                totalTime: '总用时',
+                completionTime: '完成时间',
+                share: '分享',
+                generatePDF: '生成PDF报告',
+                returnHome: '返回目录',
+                analysisTitle: '题目分析',
+                problemHeader: '题目',
+                userAnswerHeader: '你的答案',
+                correctnessHeader: '正确性',
+                correctAnswerHeader: '正确答案',
+                correct: '正确',
+                incorrect: '错误',
+                seconds: '秒',
+                errorNoName: '请先在主页设置姓名！',
+                errorEnterAnswer: '请输入答案！',
+                title: '珠心算练习（二位三笔加减）',
+                reportTitle: '珠心算练习结果',
+                reportSubtitle: '（二位三笔加减）',
+                shareText: '看看我的珠心算练习成绩！',
+                author: '作者：颜毅翔',
+                aiUsage: 'AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。'
+            },
+            en: {
+                selectQuestions: 'Select Number of Questions',
+                startPractice: 'Start Practice',
+                question: 'Question {n}',
+                enterAnswer: 'Enter Answer',
+                submit: 'Submit',
+                practiceResults: 'Practice Results',
+                name: 'Name',
+                correctCount: 'Correct Answers',
+                totalTime: 'Total Time',
+                completionTime: 'Completion Time',
+                share: 'Share',
+                generatePDF: 'Generate PDF Report',
+                returnHome: 'Return to Home',
+                analysisTitle: 'Question Analysis',
+                problemHeader: 'Question',
+                userAnswerHeader: 'Your Answer',
+                correctnessHeader: 'Correctness',
+                correctAnswerHeader: 'Correct Answer',
+                correct: 'Correct',
+                incorrect: 'Incorrect',
+                seconds: 'seconds',
+                errorNoName: 'Please set a name first!',
+                errorEnterAnswer: 'Please enter an answer!',
+                title: 'Abacus Practice (Two-Digit Three-Step Addition/Subtraction)',
+                reportTitle: 'Abacus Practice Results',
+                reportSubtitle: '(Two-Digit Three-Step Addition/Subtraction)',
+                shareText: 'Check out my abacus practice results!',
+                author: 'Author: Melphis Ng',
+                aiUsage: 'AI Tool Usage: Part of the code was generated with the assistance of AI (Grok 3), with creativity and logic conceived by the author.'
+            }
+        };
+
+        function toggleLanguage() {
+            language = language === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('language', language);
+            showSummary();
+        }
+
         function inputKey(key) {
             const now = Date.now();
-            if (now - lastInputTime < debounceDelay) return; // 防抖
+            if (now - lastInputTime < debounceDelay) return;
             lastInputTime = now;
-
             const input = document.getElementById('answer');
             if (key === 'delete') {
                 input.value = '';
@@ -388,8 +581,9 @@
         }
 
         function startPractice() {
+            console.log('startPractice called');
             if (!userName || userName === '未知') {
-                document.getElementById('setupError').innerText = '请先在主页设置姓名！';
+                document.getElementById('setupError').innerText = translations[language].errorNoName;
                 return;
             }
             document.getElementById('setupError').innerText = '';
@@ -402,15 +596,19 @@
             startTime = new Date();
             document.getElementById('setup').style.display = 'none';
             document.getElementById('practice').style.display = 'block';
+            document.getElementById('langToggle').style.display = 'none';
             showProblem();
         }
 
         function showProblem() {
+            console.log(`showProblem: currentIndex=${currentIndex}, problems.length=${problems.length}`);
             if (currentIndex >= problems.length) {
+                console.log('Transitioning to summary');
                 showSummary();
                 return;
             }
             document.getElementById('currentQuestion').innerText = currentIndex + 1;
+            document.getElementById('questionTitle').innerHTML = translations[language].question.replace('{n}', `<span id="currentQuestion">${currentIndex + 1}</span>`);
             document.getElementById('problem').innerHTML = problems[currentIndex].practiceText;
             document.getElementById('problem').dataset.answer = problems[currentIndex].answer;
             document.getElementById('answer').value = '';
@@ -418,15 +616,17 @@
         }
 
         function checkAnswer() {
+            console.log(`checkAnswer: currentIndex=${currentIndex}`);
             const userAnswer = parseInt(document.getElementById('answer').value);
             const correctAnswer = parseInt(document.getElementById('problem').dataset.answer);
             if (isNaN(userAnswer)) {
-                document.getElementById('result').innerText = '请输入答案！';
+                document.getElementById('result').innerText = translations[language].errorEnterAnswer;
                 return;
             }
             problems[currentIndex].userAnswer = userAnswer;
             problems[currentIndex].correct = userAnswer === correctAnswer;
             currentIndex++;
+            console.log(`checkAnswer: incremented currentIndex=${currentIndex}`);
             showProblem();
         }
 
@@ -435,7 +635,7 @@
             const canvas = document.getElementById('shareCanvas');
             const ctx = canvas.getContext('2d');
             const width = shareArea.offsetWidth;
-            const height = shareArea.offsetHeight + 90;
+            const height = shareArea.offsetHeight + (language === 'en' ? 120 : 90);
             canvas.width = width;
             canvas.height = height;
             ctx.fillStyle = 'white';
@@ -447,25 +647,31 @@
             ctx.fillStyle = 'black';
             ctx.textAlign = 'center';
             const xCenter = width / 2;
-            ctx.fillText('珠心算练习结果', xCenter, y);
+            ctx.fillText(translations[language].reportTitle, xCenter, y);
             y += lineHeight;
-            ctx.fillText('（二位三笔加减）', xCenter, y);
+            if (language === 'en') {
+                ctx.fillText('(Two-Digit Three-Step', xCenter, y);
+                y += lineHeight;
+                ctx.fillText('Addition/Subtraction)', xCenter, y);
+            } else {
+                ctx.fillText(translations[language].reportSubtitle, xCenter, y);
+            }
             y += lineHeight;
             ctx.textAlign = 'left';
             ctx.font = '16px bold Arial';
-            ctx.fillText(`姓名：${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
+            ctx.fillText(`${translations[language].name}: ${document.getElementById('userNameDisplay').innerText}`, xLeft, y);
             y += lineHeight;
             ctx.font = '16px Arial';
-            ctx.fillText(`答对题数：${document.getElementById('correctCount').innerText}`, xLeft, y);
+            ctx.fillText(`${translations[language].correctCount}: ${document.getElementById('correctCount').innerText}`, xLeft, y);
             y += lineHeight;
-            ctx.fillText(`总用时：${document.getElementById('totalTime').innerText}`, xLeft, y);
+            ctx.fillText(`${translations[language].totalTime}: ${document.getElementById('totalTime').innerText}`, xLeft, y);
             y += lineHeight;
-            ctx.fillText(`完成时间：${document.getElementById('completionTime').innerText}`, xLeft, y);
+            ctx.fillText(`${translations[language].completionTime}: ${document.getElementById('completionTime').innerText}`, xLeft, y);
             y += 2 * lineHeight;
             ctx.font = '14px Arial';
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'center';
-            ctx.fillText('作者：颜毅翔', xCenter, y);
+            ctx.fillText(translations[language].author, xCenter, y);
             return canvas;
         }
 
@@ -476,8 +682,8 @@
                 if (navigator.share && isMobile) {
                     navigator.share({
                         files: [file],
-                        title: '珠心算练习结果',
-                        text: '看看我的珠心算练习成绩！'
+                        title: translations[language].reportTitle,
+                        text: translations[language].shareText
                     }).catch(err => console.error('分享失败:', err));
                 } else {
                     const url = URL.createObjectURL(blob);
@@ -494,21 +700,20 @@
             const canvas = drawShareCanvas();
             const imgData = canvas.toDataURL('image/png');
             const imgProps = { width: canvas.width, height: canvas.height };
-            const pdfImageHeight = (imgProps.height * 190) / imgProps.width; // 保持比例，宽度190
+            const pdfImageHeight = (imgProps.height * 190) / imgProps.width;
 
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF();
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight); // 保持原始比例
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, pdfImageHeight);
 
             pdf.setLineWidth(0.5);
-            pdf.setDrawColor(0, 0, 0); // 黑色实线
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setFont('helvetica', 'normal');
 
-            // 表格位置，从图片下方开始
-            let y = 10 + pdfImageHeight + 10; // 图片下方间距
-            let startY = y;
+            let y = 10 + pdfImageHeight + 10;
             const rowHeight = 10;
-            const colWidths = [50, 50, 50, 40]; // 总宽190，确保边界内
-            const pageHeight = pdf.internal.pageSize.height - 20; // 页底留边
+            const colWidths = [50, 50, 50, 40];
+            const pageHeight = pdf.internal.pageSize.height - 20;
 
             function drawTableHeader() {
                 pdf.setFontSize(12);
@@ -518,81 +723,110 @@
                 pdf.text('CORRECTNESS', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 7, { align: 'center' });
                 pdf.text('ANSWER', 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + 7, { align: 'center' });
                 y += rowHeight;
-                pdf.line(10, y - rowHeight, 200, y - rowHeight); // 顶线
-                pdf.line(10, y, 200, y); // 底线
+                pdf.line(10, y - rowHeight, 200, y - rowHeight);
+                pdf.line(10, y, 200, y);
                 let x = 10;
                 colWidths.forEach(width => {
                     pdf.line(x, y - rowHeight, x, y);
                     x += width;
                 });
-                pdf.line(x, y - rowHeight, x, y); // 右边线
+                pdf.line(x, y - rowHeight, x, y);
             }
 
             drawTableHeader();
 
-            // 绘制表格行
             pdf.setFontSize(10);
             problems.forEach((problem) => {
-                // 检查是否需要分页
                 if (y + rowHeight > pageHeight) {
                     pdf.addPage();
                     y = 10;
-                    drawTableHeader(); // 新页重绘表头
+                    drawTableHeader();
                 }
 
                 pdf.setTextColor(0, 0, 0);
-                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5); // 留边距
+                const questionLines = pdf.splitTextToSize(problem.summaryText, colWidths[0] - 5);
                 let dynamicRowHeight = rowHeight * questionLines.length;
-                let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2); // 居中
+                let lineY = y + (dynamicRowHeight / 2) - ((questionLines.length - 1) * 5 / 2);
                 questionLines.forEach(line => {
                     pdf.text(line, 10 + colWidths[0] / 2, lineY, { align: 'center' });
                     lineY += 5;
                 });
 
                 if (problem.correct) {
-                    pdf.setTextColor(0, 128, 128); // 深青色
+                    pdf.setTextColor(0, 128, 128);
                 } else {
-                    pdf.setTextColor(255, 0, 0); // 红色
+                    pdf.setTextColor(255, 0, 0);
                 }
                 pdf.text((problem.userAnswer !== undefined ? problem.userAnswer.toString() : '-'), 10 + colWidths[0] + colWidths[1] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
 
                 if (problem.correct) {
-                    pdf.setTextColor(0, 128, 128); // 深青色
+                    pdf.setTextColor(0, 128, 128);
                     pdf.text('CORRECT', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
                 } else {
-                    pdf.setTextColor(255, 0, 0); // 红色
+                    pdf.setTextColor(255, 0, 0);
                     pdf.text('WRONG', 10 + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
                 }
 
-                pdf.setTextColor(0, 0, 0); // 黑色
+                pdf.setTextColor(0, 0, 0);
                 pdf.text(problem.answer.toString(), 10 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] / 2, y + (dynamicRowHeight / 2) + 2, { align: 'center' });
 
-                // 绘制行线
-                pdf.line(10, y, 200, y); // 顶线 (前一行底线)
+                pdf.line(10, y, 200, y);
                 y += dynamicRowHeight;
-                pdf.line(10, y, 200, y); // 底线
+                pdf.line(10, y, 200, y);
                 let x = 10;
                 colWidths.forEach(width => {
                     pdf.line(x, y - dynamicRowHeight, x, y);
                     x += width;
                 });
-                pdf.line(x, y - dynamicRowHeight, x, y); // 右边线
+                pdf.line(x, y - dynamicRowHeight, x, y);
             });
 
             pdf.save('report.pdf');
         }
 
         function showSummary() {
+            console.log('showSummary called');
             document.getElementById('practice').style.display = 'none';
             document.getElementById('summary').style.display = 'block';
+            document.getElementById('langToggle').style.display = 'block';
             const endTime = new Date();
             const timeTaken = Math.round((endTime - startTime) / 1000);
             const correctCount = problems.filter(p => p.correct).length;
+            const percentage = (correctCount / numQuestions) * 100;
+            let messageArray;
+            if (percentage === 100) {
+                messageArray = encouragementsByPercentage.fullMarks[language];
+            } else if (percentage >= 80) {
+                messageArray = encouragementsByPercentage.from80to100[language];
+            } else if (percentage >= 60) {
+                messageArray = encouragementsByPercentage.from60to80[language];
+            } else if (percentage >= 40) {
+                messageArray = encouragementsByPercentage.from40to60[language];
+            } else if (percentage >= 10) {
+                messageArray = encouragementsByPercentage.from10to40[language];
+            } else {
+                messageArray = encouragementsByPercentage.below10[language];
+            }
             document.getElementById('userNameDisplay').innerText = userName;
             document.getElementById('correctCount').innerText = `${correctCount}/${numQuestions}`;
-            document.getElementById('totalTime').innerText = `${timeTaken} 秒`;
+            document.getElementById('totalTime').innerText = `${timeTaken} ${translations[language].seconds}`;
             document.getElementById('completionTime').innerText = formatDateTime(endTime);
-            document.getElementById('encouragement').innerText = encouragements[Math.floor(Math.random() * encouragements.length)];
+            document.getElementById('encouragement').innerText = messageArray[Math.floor(Math.random() * messageArray.length)];
+            document.getElementById('practiceResults').innerText = translations[language].practiceResults;
+            document.getElementById('nameLabel').innerText = translations[language].name;
+            document.getElementById('correctCountLabel').innerText = translations[language].correctCount;
+            document.getElementById('totalTimeLabel').innerText = translations[language].totalTime;
+            document.getElementById('completionTimeLabel').innerText = translations[language].completionTime;
+            document.getElementById('shareButton').innerText = translations[language].share;
+            document.getElementById('pdfButton').innerText = translations[language].generatePDF;
+            document.getElementById('returnHomeButton').innerText = translations[language].returnHome;
+            document.getElementById('analysisTitle').innerText = translations[language].analysisTitle;
+            document.getElementById('problemHeader').innerText = translations[language].problemHeader;
+            document.getElementById('userAnswerHeader').innerText = translations[language].userAnswerHeader;
+            document.getElementById('correctnessHeader').innerText = translations[language].correctnessHeader;
+            document.getElementById('correctAnswerHeader').innerText = translations[language].correctAnswerHeader;
+            document.getElementById('author').innerHTML = `${translations.zh.author}<br>${translations.en.author}`;
+            document.getElementById('aiUsage').innerHTML = `${translations.zh.aiUsage}<br>${translations.en.aiUsage}`;
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
             problems.forEach((problem, index) => {
@@ -600,11 +834,12 @@
                 row.innerHTML = `
                     <td>${problem.summaryText}</td>
                     <td>${problem.userAnswer !== undefined ? problem.userAnswer : '-'}</td>
-                    <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? '正确' : '错误'}</td>
+                    <td class="${problem.correct ? 'correct' : 'incorrect'}">${problem.correct ? translations[language].correct : translations[language].incorrect}</td>
                     <td>${problem.answer}</td>
                 `;
                 table.appendChild(row);
             });
+            document.title = translations[language].title;
         }
 
         function returnToHome() {
@@ -612,6 +847,7 @@
         }
 
         window.onload = () => {
+            console.log('window.onload: Initializing');
             document.getElementById('setup').style.display = 'block';
             const answerInput = document.getElementById('answer');
             if (isMobile) {
@@ -625,24 +861,48 @@
             }
             answerInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
+                    console.log('Enter key pressed, calling checkAnswer');
                     checkAnswer();
                 }
             });
+            const submitButton = document.getElementById('submitButton');
+            submitButton.addEventListener('click', () => {
+                console.log('Submit button clicked');
+                checkAnswer();
+            });
+            if (isMobile) {
+                submitButton.addEventListener('touchstart', (event) => {
+                    event.preventDefault();
+                    console.log('Submit button touched');
+                    checkAnswer();
+                });
+            }
             const buttons = document.querySelectorAll('.keyboard button');
             buttons.forEach(button => {
                 const key = button.dataset.key;
-                button.addEventListener('click', () => inputKey(key));
+                button.addEventListener('click', () => {
+                    console.log(`Keyboard button ${key} clicked`);
+                    inputKey(key);
+                });
                 if (isMobile) {
                     button.addEventListener('touchstart', (event) => {
                         event.preventDefault();
+                        console.log(`Keyboard button ${key} touched`);
                         inputKey(key);
                     });
                 }
             });
             if (!localStorage.getItem('userName')) {
-                document.getElementById('setupError').innerText = '请先在主页设置姓名！';
+                document.getElementById('setupError').innerText = translations[language].errorNoName;
                 document.getElementById('startButton').disabled = true;
             }
+            document.getElementById('langToggle').style.display = 'none';
+            document.title = translations[language].title;
+            document.getElementById('numQuestions').previousElementSibling.innerText = `${translations.zh.selectQuestions} / ${translations.en.selectQuestions}`;
+            document.getElementById('startButton').innerText = `${translations.zh.startPractice} / ${translations.en.startPractice}`;
+            document.getElementById('answer').placeholder = `${translations.zh.enterAnswer} / ${translations.en.enterAnswer}`;
+            document.getElementById('submitButton').innerText = `${translations.zh.submit} / ${translations.en.submit}`;
+            document.getElementById('questionTitle').innerHTML = `${translations.zh.question.replace('{n}', '<span id="currentQuestion">1</span>')} / ${translations.en.question.replace('{n}', '<span id="currentQuestion">1</span>')}`;
         };
     </script>
 </body>

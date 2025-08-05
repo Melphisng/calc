@@ -304,8 +304,8 @@
             </table>
         </div>
         <div class="footer">
-            <p id="author">作者：颜毅翔</p>
-            <p id="aiUsage">AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。</p>
+            <p id="author"><span>作者：颜毅翔<br>Author: Melphis Ng</span></p>
+            <p id="aiUsage"><span>AI 工具使用：部分代码由 AI（Grok 3）辅助生成，创意与逻辑由作者构思。<br>AI Tool Usage: Part of the code was generated with the assistance of AI (Grok 3), with creativity and logic conceived by the author.</span></p>
         </div>
     </div>
     <canvas id="shareCanvas" style="display: none;"></canvas>
@@ -784,8 +784,8 @@
             document.getElementById('userAnswerHeader').innerText = translations[language].userAnswerHeader;
             document.getElementById('correctnessHeader').innerText = translations[language].correctnessHeader;
             document.getElementById('correctAnswerHeader').innerText = translations[language].correctAnswerHeader;
-            document.getElementById('author').innerText = translations[language].author;
-            document.getElementById('aiUsage').innerText = translations[language].aiUsage;
+            document.getElementById('author').innerHTML = `${translations.zh.author}<br>${translations.en.author}`;
+            document.getElementById('aiUsage').innerHTML = `${translations.zh.aiUsage}<br>${translations.en.aiUsage}`;
             const table = document.getElementById('summaryTable');
             table.innerHTML = '';
             problems.forEach((problem, index) => {
